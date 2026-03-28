@@ -45,20 +45,15 @@ const credsPath = path.join(__dirname, '/auth_info_baileys/creds.json');
 async function ensureSessionFile() {
     if (!fs.existsSync(credsPath)) {
         if (!config.SESSION_ID) {
-            console.error('❌ SESSION_ID env variable is missing. Cannot restore session.');
+            console.error('❌ SESSION_ID missing.');
             process.exit(1);
         }
-        console.log("🔄 creds.json not found. Downloading session from MEGA...");
         const sessdata = config.SESSION_ID;
         const filer = File.fromURL(`https://mega.nz/file/${sessdata}`);
         filer.download((err, data) => {
-            if (err) {
-                console.error("❌ Failed to download session file from MEGA:", err);
-                process.exit(1);
-            }
+            if (err) process.exit(1);
             fs.mkdirSync(path.join(__dirname, '/auth_info_baileys/'), { recursive: true });
             fs.writeFileSync(credsPath, data);
-            console.log("✅ Session downloaded and saved. Restarting bot...");
             setTimeout(() => { connectToWA(); }, 2000);
         });
     } else {
@@ -77,16 +72,11 @@ async function connectToWA() {
         const Settings = require('./lib/settings');
         const savedSettings = await Settings.findOne({}); 
         if (savedSettings) {
-            config.workMode = savedSettings.workMode || config.workMode;
-            config.statusSeen = savedSettings.statusSeen || config.statusSeen;
-            config.statusReact = savedSettings.statusReact || config.statusReact;
+            Object.assign(config, savedSettings._doc);
             console.log(`✅ Settings Synced From DB`);
         }
-    } catch (e) {
-        console.log("❌ DB Settings Load Error:", e);
-    }
+    } catch (e) { console.log("❌ DB Load Error"); }
 
-    await new Promise(resolve => setTimeout(resolve, 2000));
     const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, '/auth_info_baileys/'));
     const { version } = await fetchLatestBaileysVersion();
 
@@ -98,7 +88,6 @@ async function connectToWA() {
         version,
         syncFullHistory: true,
         markOnlineOnConnect: true,
-        generateHighQualityLinkPreview: true,
     });
 
     danuwa.ev.on('connection.update', async (update) => {
@@ -107,16 +96,9 @@ async function connectToWA() {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
             if (shouldReconnect) setTimeout(() => connectToWA(), 5000);
         } else if (connection === 'open') {
-            console.log('✅ VEXTER-MD connected to WhatsApp');
-            const up = `VEXTER-MD connected ✅\n\nPREFIX: ${prefix}`;
-            await danuwa.sendMessage("94783462955@s.whatsapp.net", {
-                image: { url: config.ALIVE_IMG },
-                caption: up
-            });
+            console.log('✅ VEXTER-MD connected');
             fs.readdirSync("./plugins/").forEach((plugin) => {
-                if (path.extname(plugin).toLowerCase() === ".js") {
-                    require(`./plugins/${plugin}`);
-                }
+                if (path.extname(plugin).toLowerCase() === ".js") require(`./plugins/${plugin}`);
             });
         }
     });
@@ -138,11 +120,14 @@ async function connectToWA() {
 
         // --- 1. Presence Update Logic ---
         if (config.presence && config.presence !== 'off') {
-            await danuwa.sendPresenceUpdate(config.presence, from).catch(e => console.log(e));
+            await danuwa.sendPresenceUpdate(config.presence, from).catch(e => {});
         }
 
-        // --- 2. Dashboard Logic (ONLY if NOT a command) ---
-        if (!isCmd && isOwner && body) {
+        // --- 2. Dashboard Logic (Only for Owner & NOT a command) ---
+        // මෙතන අංක ටික දශම සහිතව තියෙන්නේ Menu එකේ 1, 2, 3 එක්ක නොපටලවන්නයි.
+        const dashboardPatterns = ["1.1","1.2","1.3","1.4","2.1","2.2","3.1","3.2","4.1","4.2","5.1","5.2","6.1","6.2","7.1","7.2","8.1","8.2","9.1","9.2","10.1","10.2","11.1","11.2","11.3","12.1","12.2","14.1","14.2","15.1","15.2","16.1","16.2","17.1","17.2","17.3","17.4","18.1","18.2","19.1","19.2","20.1","20.2","22.1","22.2"];
+        
+        if (!isCmd && isOwner && dashboardPatterns.includes(body.trim())) {
             let update = {};
             let msgDesc = "";
             const input = body.trim();
@@ -198,82 +183,52 @@ async function connectToWA() {
 
             if (Object.keys(update).length > 0) {
                 try {
-                    const result = await Settings.findOneAndUpdate({}, { $set: update }, { upsert: true, returnDocument: 'after' });
-                    if (result) {
-                        Object.assign(config, update);
-                        await reply(`✅ *VEXTER-MD UPDATED*\n\n${msgDesc}`);
-                        return; // Settings update වුණාම මෙතනින් නවත්වනවා
-                    }
-                } catch (err) {
-                    console.error("❌ DB Update Error:", err);
-                    return reply("❌ Database Update Error!");
-                }
+                    await Settings.findOneAndUpdate({}, { $set: update }, { upsert: true });
+                    Object.assign(config, update);
+                    return await reply(`✅ *VEXTER-MD UPDATED*\n\n${msgDesc}`);
+                } catch (e) { console.log(e); }
             }
         }
 
-        // --- 3. Auto Status Logic ---
+        // --- 3. Command Execution & Filter Check ---
+        const m = sms(danuwa, mek);
+        const commandName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : '';
+        
+        // මේකෙන් තමයි Menu එකේ 1, 2, 3 ගැහුවම වැඩ කරන්නේ
+        const cmd = commands.find((c) => 
+            (isCmd && (c.pattern === commandName || (c.alias && c.alias.includes(commandName)))) || 
+            (c.filter && typeof c.filter === 'function' && c.filter(body, { sender, isOwner }))
+        );
+
+        if (cmd) {
+            const isGroup = from.endsWith('@g.us');
+            const mode = (config.workMode || "public").toLowerCase();
+            if (!isOwner && (mode === "private" || (mode === "groups" && !isGroup) || (mode === "inbox" && isGroup))) return;
+
+            if (cmd.react) danuwa.sendMessage(from, { react: { text: cmd.react, key: mek.key } });
+            try {
+                await cmd.function(danuwa, mek, m, {
+                    from, quoted: mek, body, isCmd, command: commandName, isGroup, sender, senderNumber, isOwner, reply,
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        // --- 4. Status Logic & Hooks ---
         if (from === 'status@broadcast') {
             if (config.statusSeen === "true") await danuwa.readMessages([mek.key]);
             if (config.statusReact === "true") {
-                const emojis = ['❤️', '🔥', '✨', '💯', '😎'];
-                const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-                await danuwa.sendMessage(from, { react: { text: randomEmoji, key: mek.key } }, { statusJidList: [mek.key.participant] });
+                await danuwa.sendMessage(from, { react: { text: "❤️", key: mek.key } }, { statusJidList: [mek.key.participant] });
             }
-            return;
         }
-
-        // --- 4. Plugin Hooks & Privacy Mode ---
         if (global.pluginHooks) {
             for (const plugin of global.pluginHooks) {
-                if (plugin.onMessage) {
-                    try { await plugin.onMessage(danuwa, mek); } catch (e) { console.log(e); }
-                }
-            }
-        }
-
-        const m = sms(danuwa, mek);
-        const isGroup = from.endsWith('@g.us');
-        const mode = (config.workMode || "public").toLowerCase();
-        
-        if (!isOwner) {
-            if (mode === "private" || (mode === "groups" && !isGroup) || (mode === "inbox" && isGroup)) return;
-        }
-
-        // --- 5. Command Execution (MENU WORK HERE) ---
-        const commandName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : '';
-        if (isCmd) {
-            const cmd = commands.find((c) => c.pattern === commandName || (c.alias && c.alias.includes(commandName)));
-            if (cmd) {
-                if (cmd.react) danuwa.sendMessage(from, { react: { text: cmd.react, key: mek.key } });
-                try {
-                    await cmd.function(danuwa, mek, m, {
-                        from, quoted: mek, body, isCmd, command: commandName, 
-                        isGroup, sender, senderNumber, isOwner, reply,
-                    });
-                } catch (e) { console.error(e); }
-            }
-        }
-    });
-
-    danuwa.ev.on('messages.update', async (updates) => {
-        if (global.pluginHooks) {
-            for (const plugin of global.pluginHooks) {
-                if (plugin.onDelete) {
-                    try { await plugin.onDelete(danuwa, updates); } catch (e) { console.log(e); }
-                }
+                if (plugin.onMessage) try { await plugin.onMessage(danuwa, mek); } catch (e) {}
             }
         }
     });
 }
 
 const mongoose = require('mongoose');
-const connectDB = async () => {
-    try {
-        await mongoose.connect(config.MONGODB_URL);
-        console.log('✅ MongoDB Connected...');
-    } catch (err) { console.error('❌ MongoDB Error:', err.message); }
-};
-
-connectDB();
+mongoose.connect(config.MONGODB_URL).then(() => console.log('✅ MongoDB Connected'));
 ensureSessionFile();
-app.listen(port, () => console.log(`Server listening on http://localhost:${port}`));
+app.listen(port, () => console.log(`Server on port ${port}`));
