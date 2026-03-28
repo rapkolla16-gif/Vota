@@ -159,25 +159,25 @@ if (mek.key?.remoteJid === 'status@broadcast') {
   }
 
   if (config.AUTO_STATUS_REACT === "true" && mek.key.participant) {
+  if (config.AUTO_STATUS_REACT === "true" && mek.key.participant) {
     try {
       const emojis = ['❤️', '💸', '😇', '🍂', '💥', '💯', '🔥', '💫', '💎', '💗', '🤍', '🖤', '👀', '🙌', '🙆', '🚩', '🥰', '💐', '😎', '🤎', '✅', '🫀', '🧡', '😁', '😄', '🌸', '🕊️', '🌷', '⛅', '🌟', '🗿', '💜', '💙', '🌝', '🖤', '💚'];
       const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
 
-      await danuwa.sendMessage(mek.key.participant, {
+      await danuwa.sendMessage(mek.key.remoteJid, { // remoteJid ලෙස status@broadcast භාවිතා කිරීම වඩාත් නිවැරදි විය හැක
         react: {
           text: randomEmoji,
           key: mek.key,
         }
-      })
-          }
-  };
+      }); // <--- මෙතන '});' ලෙස වැසිය යුතුය (ඔයාගේ එකේ '})' පමණක් තිබුණි)
 
       console.log(`[✓] Reacted to status of ${mek.key.participant} with ${randomEmoji}`);
     } catch (e) {
       console.error("❌ Failed to react to status:", e);
     }
-  }
-               }
+  } // <--- මෙතනින් 'if' එක වැසේ (ඔයාගේ එකේ මෙතන අනවශ්‍ය '}' කිහිපයක් තිබුණි)
+      
+               
 
     const m = sms(danuwa, mek);
     const type = getContentType(mek.message);
