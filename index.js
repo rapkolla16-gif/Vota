@@ -155,6 +155,8 @@ async function connectToWA() {
             else if (input === '2') { category = "group"; subTitle = "GROUP MENU"; }
             else if (input === '3') { category = "owner"; subTitle = "OWNER MENU"; }
             else if (input === '4') { category = "search"; subTitle = "SEARCH MENU"; }
+            else if (input === '6') { category = "edit"; subTitle = "EDIT MENU"; }
+            
 
             if (category) {
                 const filteredCmds = commands.filter(cmd => cmd.category && cmd.category.toLowerCase() === category.toLowerCase());
@@ -179,7 +181,7 @@ async function connectToWA() {
                             body: "Vexter Multi Device Bot",
                             mediaType: 1,
                             thumbnailUrl: config.ALIVE_IMG,
-                            renderLargerThumbnail: true,
+                            renderLargerThumbnail: false,
                             sourceUrl: "https://wa.me/94783462955"
                         }
                     }
