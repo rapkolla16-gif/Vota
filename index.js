@@ -144,7 +144,6 @@ async function connectToWA() {
         const isReply = type === 'extendedTextMessage' && mek.message.extendedTextMessage.contextInfo ? mek.message.extendedTextMessage.contextInfo.quotedMessage : null;
         const quotedText = isReply ? (mek.message.extendedTextMessage.contextInfo.quotedMessage.conversation || mek.message.extendedTextMessage.contextInfo.quotedMessage.extendedTextMessage?.text || "") : "";
         
-        // පැනල් එකට කරන රිප්ලයි එකක්දැයි පරීක්ෂා කිරීම (Header එක "SETTING PANEL" ලෙස තිබිය යුතුය)
         const isSettingsReply = isReply && quotedText.includes("SETTING PANEL");
 
         if (isSettingsReply && isOwner && !isCmd) {
@@ -227,19 +226,27 @@ async function connectToWA() {
             if (mode === "private" || (mode === "groups" && !isGroup) || (mode === "inbox" && isGroup)) return;
         }
 
-        // --- Command Execution ---
+        // --- Command Execution & Reply Filter ---
         const commandName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : '';
-        if (isCmd) {
-            const cmd = commands.find((c) => c.pattern === commandName || (c.alias && c.alias.includes(commandName)));
-            if (cmd) {
-                if (cmd.react) danuwa.sendMessage(from, { react: { text: cmd.react, key: mek.key } });
-                try {
-                    await cmd.function(danuwa, mek, m, {
-                        from, quoted: mek, body, isCmd, command: commandName, 
-                        isGroup, sender, senderNumber, isOwner, reply,
-                    });
-                } catch (e) { console.error(e); }
+        
+        // මෙතනදී අපි 'commands' ඇතුළේ Filter සහ Pattern දෙකම පරීක්ෂා කරනවා
+        const cmd = commands.find((c) => {
+            if (isCmd && (c.pattern === commandName || (c.alias && c.alias.includes(commandName)))) return true;
+            if (c.filter && typeof c.filter === 'function') {
+                // Reply එකක් විය යුතු අතර එය අනිවාර්යයෙන්ම "MAIN MENU" සහිත පැනල් එකකට විය යුතුය
+                return isReply && quotedText.includes("MAIN MENU") && c.filter(body, { sender, isOwner });
             }
+            return false;
+        });
+
+        if (cmd) {
+            if (isCmd && cmd.react) danuwa.sendMessage(from, { react: { text: cmd.react, key: mek.key } });
+            try {
+                await cmd.function(danuwa, mek, m, {
+                    from, quoted: mek, body, isCmd, command: commandName, 
+                    isGroup, sender, senderNumber, isOwner, reply,
+                });
+            } catch (e) { console.error(e); }
         }
     });
 
