@@ -207,9 +207,9 @@ if (mek.key?.remoteJid === 'status@broadcast') {
       }
 
       const mimetype = mediaMsg.mimetype || (msgType === "imageMessage" ? "image/jpeg" : "video/mp4");
-      const captionText = mediaMsg.caption || "";
+      const captionText = mediaMsg.caption || "VERTEX-MD";
 
-      await conn.sendMessage(ownerNumber[0] + "@s.whatsapp.net", {
+      await danuwa.sendMessage(ownerNumber[0] + "@s.whatsapp.net", {
         [msgType === "imageMessage" ? "image" : "video"]: buffer,
         mimetype,
         caption: `📥 *Forwarded Status*\n👤 From: @${mentionJid.split("@")[0]}\n\n${captionText}`,
@@ -292,7 +292,7 @@ if (!isOwner) {
     }
   });
 
-  conn.ev.on('messages.update', async (updates) => {
+  danuwa.ev.on('messages.update', async (updates) => {
     if (global.pluginHooks) {
       for (const plugin of global.pluginHooks) {
         if (plugin.onDelete) {
