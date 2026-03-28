@@ -140,7 +140,6 @@ async function connectToWA() {
         const isCmd = body.startsWith(prefix);
         const reply = (text) => danuwa.sendMessage(from, { text }, { quoted: mek });
 
-        // --- Reply Check Logic ---
         const isReply = type === 'extendedTextMessage' && mek.message.extendedTextMessage.contextInfo ? mek.message.extendedTextMessage.contextInfo.quotedMessage : null;
         const quotedText = isReply ? (mek.message.extendedTextMessage.contextInfo.quotedMessage.conversation || mek.message.extendedTextMessage.contextInfo.quotedMessage.extendedTextMessage?.text || "") : "";
         
@@ -193,9 +192,7 @@ async function connectToWA() {
                     Object.assign(config, update);
                     await reply(`✅ *VEXTER-MD UPDATED*\n\n${msgDesc}`);
                     return;
-                } catch (err) {
-                    console.error("❌ DB Update Error:", err);
-                }
+                } catch (err) { console.error("❌ DB Update Error:", err); }
             }
         }
 
@@ -230,25 +227,38 @@ async function connectToWA() {
         // --- Command Execution & Reply Filter ---
         const commandName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : '';
         
-        let cmd = null;
-
-        if (isCmd) {
-            // 1. Prefix සහිත සාමාන්‍ය කමාන්ඩ් (.menu වැනි)
-            cmd = commands.find((c) => c.pattern === commandName || (c.alias && c.alias.includes(commandName)));
-        } else if (isReply && quotedText.includes("MAIN MENU")) {
-            // 2. Main Menu එකට අංකයකින් Reply කිරීම (Prefix නැති අවස්ථාව)
-            cmd = commands.find((c) => c.filter && typeof c.filter === 'function' && c.filter(body, { sender, isOwner, from }));
-        }
+        // 1. Prefix Commands (.menu වැනි)
+        const cmd = commands.find((c) => isCmd && (c.pattern === commandName || (c.alias && c.alias.includes(commandName))));
 
         if (cmd) {
-            // React only for prefix commands
-            if (isCmd && cmd.react) danuwa.sendMessage(from, { react: { text: cmd.react, key: mek.key } });
+            if (cmd.react) danuwa.sendMessage(from, { react: { text: cmd.react, key: mek.key } });
             try {
                 await cmd.function(danuwa, mek, m, {
                     from, quoted: mek, body, isCmd, command: commandName, 
                     isGroup, sender, senderNumber, isOwner, reply,
                 });
             } catch (e) { console.error("❌ Command Error:", e); }
+        }
+
+        // 2. Non-Prefix / Reply Commands (Menu එකට අංකයකින් Reply කිරීම)
+        // මේ කොටස අලුතින් එකතු කළා - දැන් අංක ගැහුවම වැඩ කරනවා
+        const textCommands = commands.filter(c => !c.pattern && (c.on === "text" || c.filter));
+        for (let plugin of textCommands) {
+            let runPlugin = false;
+            if (plugin.filter && typeof plugin.filter === 'function') {
+                runPlugin = plugin.filter(body, { sender, isOwner, from, isReply, quotedText });
+            } else if (plugin.on === "text") {
+                runPlugin = true;
+            }
+
+            if (runPlugin) {
+                try {
+                    await plugin.function(danuwa, mek, m, {
+                        from, quoted: mek, body, isCmd, command: "", 
+                        isGroup, sender, senderNumber, isOwner, reply,
+                    });
+                } catch (e) { console.error("❌ Reply Plugin Error:", e); }
+            }
         }
     });
 
