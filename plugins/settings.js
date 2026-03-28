@@ -1,81 +1,80 @@
 const { cmd } = require("../command");
-const Settings = require("../lib/settings"); 
-const config = require("../config"); 
+const Settings = require("../lib/settings");
+const config = require("../config");
 
-cmd(
-  {
+// පැනල් එක පෙන්වන කමාන්ඩ් එක
+cmd({
     pattern: "settings",
-    desc: "Manage Bot Work Mode and Status Settings",
+    alias: ["panel", "set"],
+    desc: "VEXTER-MD Advanced Setting Panel",
     category: "owner",
     filename: __filename,
-  },
-  async (danuwa, mek, m, { from, isOwner, senderNumber, q, reply }) => {
-    try {
-        // --- 100% ශක්තිමත් OWNER CHECK එක ---
-        const cleanSender = (senderNumber || "").replace(/[^0-9]/g, '');
-        const cleanConfigOwner = (config.OWNER_NUMBER || "").replace(/[^0-9]/g, '');
-        
-        // නම්බර් එකේ කොටසක් හෝ සම්පූර්ණ නම්බර් එක මැච් වෙනවාද බලයි
-        const isBotOwner = isOwner || cleanSender.includes(cleanConfigOwner) || cleanConfigOwner.includes(cleanSender);
+},
+async (danuwa, mek, m, { from, isOwner, reply }) => {
+    if (!isOwner) return reply("❌ *Access Denied:* Owner only.");
 
-        if (!isBotOwner) return reply("❌ *Access Denied:* Owner only.");
+    const panelMsg = `*「 SETTING PANEL 」*
 
-        // Database එකෙන් දැනට තියෙන settings කියවීම
-        let data = await Settings.findOne({ id: "bot_settings" });
-        if (!data) {
-            data = await Settings.create({ 
-                id: "bot_settings", 
-                workMode: config.WORK_MODE || "public",
-                statusSeen: config.AUTO_STATUS_SEEN || "true",
-                statusReact: config.AUTO_STATUS_REACT || "true"
-            });
-        }
+*🔢 Reply below number*
 
-        if (!q) {
-            const statusMsg = `⚙️ *VEXTER-MD SYSTEM SETTINGS* ⚙️\n\n` +
-                              `1️⃣ *Work Mode:* ${data.workMode.toUpperCase()}\n` +
-                              `2️⃣ *Auto Status Seen:* ${data.statusSeen === "true" ? "✅ ON" : "❌ OFF"}\n` +
-                              `3️⃣ *Auto Status React:* ${data.statusReact === "true" ? "✅ ON" : "❌ OFF"}\n\n` +
-                              `*How to change:* Use .settings <number>\n` +
-                              `Example: .settings 2 (To Toggle Status Seen)`;
-            return reply(statusMsg);
-        }
+*\`[1] MODE\`*
+*🔸 1.1* ❯❯◦ *PUBLIC* 
+*🔸 1.2* ❯❯◦ *PRIVATE* 
+*🔸 1.3* ❯❯◦ *GROUPS* 
+*🔸 1.4* ❯❯◦ *INBOX* 
 
-        let choice = q.trim();
-        let updateData = {};
-        let msg = "";
+*\`[2] AUTO READ STATUS\`*
+*🔸 2.1* ❯❯◦ *True*
+*🔸 2.2* ❯❯◦ *False*
 
-        if (choice === "1") {
-            // Work mode එක මාරු කිරීම (Cycle logic)
-            const modes = ["public", "private", "groups", "inbox"];
-            let nextIndex = (modes.indexOf(data.workMode) + 1) % modes.length;
-            updateData.workMode = modes[nextIndex];
-            config.WORK_MODE = updateData.workMode;
-            msg = `✅ *Work Mode* updated to *${updateData.workMode.toUpperCase()}*`;
-        } 
-        else if (choice === "2") {
-            // Status Seen ON/OFF
-            updateData.statusSeen = data.statusSeen === "true" ? "false" : "true";
-            config.AUTO_STATUS_SEEN = updateData.statusSeen;
-            msg = `✅ *Auto Status Seen* is now *${updateData.statusSeen === "true" ? "ON" : "OFF"}*`;
-        } 
-        else if (choice === "3") {
-            // Status React ON/OFF
-            updateData.statusReact = data.statusReact === "true" ? "false" : "true";
-            config.AUTO_STATUS_REACT = updateData.statusReact;
-            msg = `✅ *Auto Status React* is now *${updateData.statusReact === "true" ? "ON" : "OFF"}*`;
-        } 
-        else {
-            return reply("❌ *Invalid Selection:* Choose 1, 2, or 3.");
-        }
+*\`[3] AUTO REPLY\`*
+*🔸 3.1* ❯❯◦ *True*
+*🔸 3.2* ❯❯◦ *False*
 
-        // Database Update
-        await Settings.findOneAndUpdate({ id: "bot_settings" }, updateData);
-        return reply(msg);
+*\`[4] AUTO VOICE\`*
+*🔸 4.1* ❯❯◦ *True*
+*🔸 4.2* ❯❯◦ *False*
 
-    } catch (e) {
-        console.error(e);
-        reply("❌ *Error:* Failed to update settings.");
-    }
-  }
-);
+*\`[5] AUTO STICKER\`*
+*🔸 5.1* ❯❯◦ *True*
+*🔸 5.2* ❯❯◦ *False*
+
+*\`[6] ANTI BAD\`*
+*🔸 6.1* ❯❯◦ *True*
+*🔸 6.2* ❯❯◦ *False*
+
+*\`[7] ANTI LINK\`*
+*🔸 7.1* ❯❯◦ *True*
+*🔸 7.2* ❯❯◦ *False*
+
+*\`[8] ANTI BOT\`*
+*🔸 8.1* ❯❯◦ *True*
+*🔸 8.2* ❯❯◦ *False*
+
+*\`[9] ALLWAYS ONLINE\`*
+*🔸 9.1* ❯❯◦ *Online*
+*🔸 9.2* ❯❯◦ *Offline*
+
+*\`[10] READ COMMAND\`*
+*🔸 10.1* ❯❯◦ *True*
+*🔸 10.2* ❯❯◦ *False*
+
+*\`[11] TYPING & RECORDING\`*
+*🔸 11.1* ❯❯◦ *Recording*
+*🔸 11.2* ❯❯◦ *Typing*
+*🔸 11.3* ❯❯◦ *OFF*
+
+*\`[12] AUTO REACT\`*
+*🔸 12.1* ❯❯◦ *True*
+*🔸 12.2* ❯❯◦ *False*
+
+*\`[17] ANTI DELETE\`*
+*🔸 17.1* ❯❯◦ *Only Inbox*
+*🔸 17.2* ❯❯◦ *Only Group*
+*🔸 17.3* ❯❯◦ *Both*
+*🔸 17.4* ❯❯◦ *False*
+
+*Example:* Reply with *3.2* to change mode.`;
+
+    return reply(panelMsg);
+});
