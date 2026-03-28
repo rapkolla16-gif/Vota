@@ -13,6 +13,23 @@ ALIVE_MSG: process.env.ALIVE_MSG || "*Hello👋 VERTEX-MD Is Alive Now😍*",
 OWNER_NUMBER: process.env.OWNER_NUMBER || '947839383678', // Replace with the owner's phone number
 AUTO_STATUS_SEEN: 'true',
 AUTO_STATUS_REACT: 'true',
+AUTO_STATUS_REPLY: process.env.AUTO_STATUS_REPLY || "false",
+AUTO_REPLY: process.env.AUTO_REPLY || "false",
+AUTO_VOICE: process.env.AUTO_VOICE || "false",
+AUTO_STICKER: process.env.AUTO_STICKER || "false",
+AI_CHAT: process.env.AI_CHAT || "false",
+    
+    // [4] Protection Settings (Anti-Features)
+ANTI_BAD: process.env.ANTI_BAD || "false",
+ANTI_LINK: process.env.ANTI_LINK || "false",
+ANTI_BOT: process.env.ANTI_BOT || "false",
+ANTI_CALL: process.env.ANTI_CALL || "false",
+ANTI_DELETE: process.env.ANTI_DELETE || "false", // inbox, group, both, false
+    
+    // [5] Presence Settings
+ALWAYS_ONLINE: process.env.ALWAYS_ONLINE || "true",
+READ_COMMAND: process.env.READ_COMMAND || "true",
+PRESENCE: process.env.PRESENCE || "off", // recording, typing, off
 
 
 
