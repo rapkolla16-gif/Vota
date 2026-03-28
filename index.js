@@ -140,10 +140,11 @@ async function connectToWA() {
         const isCmd = body.startsWith(prefix);
         const reply = (text) => danuwa.sendMessage(from, { text }, { quoted: mek });
 
-        // --- Dashboard & Settings Logic ---
+        // --- Reply Check Logic ---
         const isReply = type === 'extendedTextMessage' && mek.message.extendedTextMessage.contextInfo ? mek.message.extendedTextMessage.contextInfo.quotedMessage : null;
         const quotedText = isReply ? (mek.message.extendedTextMessage.contextInfo.quotedMessage.conversation || mek.message.extendedTextMessage.contextInfo.quotedMessage.extendedTextMessage?.text || "") : "";
         
+        // --- Dashboard & Settings Logic ---
         const isSettingsReply = isReply && quotedText.includes("SETTING PANEL");
 
         if (isSettingsReply && isOwner && !isCmd) {
@@ -229,20 +230,18 @@ async function connectToWA() {
         // --- Command Execution & Reply Filter ---
         const commandName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : '';
         
-        // **UPDATED Logic**: Prefix නැතිව වුණත් filter එක වැඩ කරන විදියට මෙතන වෙනස් කළා
-        const cmd = commands.find((c) => {
+        let cmd = null;
+
+        if (isCmd) {
             // 1. Prefix සහිත සාමාන්‍ය කමාන්ඩ් (.menu වැනි)
-            if (isCmd && (c.pattern === commandName || (c.alias && c.alias.includes(commandName)))) return true;
-            
-            // 2. Filter එකක් සහිත කමාන්ඩ් (Menu එකට අංකයකින් Reply කිරීම වැනි)
-            if (!isCmd && c.filter && typeof c.filter === 'function') {
-                return isReply && quotedText.includes("MAIN MENU") && c.filter(body, { sender, isOwner });
-            }
-            return false;
-        });
+            cmd = commands.find((c) => c.pattern === commandName || (c.alias && c.alias.includes(commandName)));
+        } else if (isReply && quotedText.includes("MAIN MENU")) {
+            // 2. Main Menu එකට අංකයකින් Reply කිරීම (Prefix නැති අවස්ථාව)
+            cmd = commands.find((c) => c.filter && typeof c.filter === 'function' && c.filter(body, { sender, isOwner, from }));
+        }
 
         if (cmd) {
-            // React only for prefix commands to avoid reacting to every number reply
+            // React only for prefix commands
             if (isCmd && cmd.react) danuwa.sendMessage(from, { react: { text: cmd.react, key: mek.key } });
             try {
                 await cmd.function(danuwa, mek, m, {
