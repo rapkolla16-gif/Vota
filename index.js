@@ -193,11 +193,12 @@ danuwa.ev.on('connection.update', async (update) => {
         const q = args.join(' ');
 
         const sender = mek.key.fromMe ? danuwa.user.id : (mek.key.participant || mek.key.remoteJid);
-        const senderNumber = sender.split('@')[0];
+        const senderNumber = sender.split('@')[0].replace(/[^0-9]/g, '');
         const isGroup = from.endsWith('@g.us');
-        const botNumber = danuwa.user.id.split(':')[0];
+        const botNumber = danuwa.user.id.split(':')[0].replace(/[^0-9]/g, '');
         const pushname = mek.pushName || 'User';
-        const isOwner = (config.OWNER_NUMBER && config.OWNER_NUMBER.includes(senderNumber)) || botNumber.includes(senderNumber);
+        const ownerNumber = config.OWNER_NUMBER ? config.OWNER_NUMBER.replace(/[^0-9]/g, '') : '';
+        const isOwner = ownerNumber.includes(senderNumber) || senderNumber === botNumber;
         const botNumber2 = await jidNormalizedUser(danuwa.user.id);
 
         const mode = (config.WORK_MODE || "public").toLowerCase();
