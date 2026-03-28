@@ -46,10 +46,6 @@ async function ensureSessionFile() {
     if (!fs.existsSync(credsPath)) {
         if (!config.SESSION_ID) {
             console.error('❌ SESSION_ID env variable is missing. Cannot restore session.');
-async function ensureSessionFile() {
-    if (!fs.existsSync(credsPath)) {
-        if (!config.SESSION_ID) {
-            console.error('❌ SESSION_ID env variable is missing. Cannot restore session.');
             process.exit(1);
         }
 
