@@ -128,10 +128,6 @@ async function connectToWA() {
         if (!mek || !mek.message) return;
 
         const from = mek.key.remoteJid;
-        if (config.presence && config.presence !== 'off') {
-            await danuwa.sendPresenceUpdate(config.presence, from).catch(() => {});
-        }
-
         const type = getContentType(mek.message);
         const body = (type === 'conversation') ? mek.message.conversation : (type === 'extendedTextMessage') ? mek.message.extendedTextMessage.text : (mek.message[type]?.caption || '');
         const sender = mek.key.fromMe ? danuwa.user.id : (mek.key.participant || mek.key.remoteJid);
@@ -142,10 +138,32 @@ async function connectToWA() {
 
         const isReply = type === 'extendedTextMessage' && mek.message.extendedTextMessage.contextInfo ? mek.message.extendedTextMessage.contextInfo.quotedMessage : null;
         const quotedText = isReply ? (mek.message.extendedTextMessage.contextInfo.quotedMessage.conversation || mek.message.extendedTextMessage.contextInfo.quotedMessage.extendedTextMessage?.text || "") : "";
-        
-        // --- Dashboard & Settings Logic ---
-        const isSettingsReply = isReply && quotedText.includes("SETTING PANEL");
 
+        // --- 🧬 MAIN MENU REPLY LOGIC 🧬 ---
+        if (isReply && !isCmd && quotedText.includes("MAIN MENU")) {
+            const input = body.trim();
+            let subMenuText = "";
+
+            if (input === '1') {
+                subMenuText = "*📥 DOWNLOAD COMMANDS*\n\n.fb\n.yt\n.tt\n.song\n.video";
+            } else if (input === '2') {
+                subMenuText = "*👥 GROUP COMMANDS*\n\n.kick\n.add\n.promote\n.demote\n.tagall";
+            } else if (input === '3') {
+                subMenuText = "*👑 OWNER COMMANDS*\n\n.restart\n.update\n.setvar\n.block";
+            } else if (input === '4') {
+                subMenuText = "*🔍 SEARCH COMMANDS*\n\n.google\n.wiki\n.weather\n.imdb";
+            }
+
+            if (subMenuText) {
+                return await danuwa.sendMessage(from, { 
+                    image: { url: config.ALIVE_IMG }, 
+                    caption: subMenuText 
+                }, { quoted: mek });
+            }
+        }
+
+        // --- Settings Handler ---
+        const isSettingsReply = isReply && quotedText.includes("SETTING PANEL");
         if (isSettingsReply && isOwner && !isCmd) {
             let update = {};
             let msgDesc = "";
@@ -159,31 +177,6 @@ async function connectToWA() {
                 case "1.4": update.workMode = "inbox"; msgDesc = "Work Mode: INBOX"; break;
                 case "2.1": update.statusSeen = "true"; msgDesc = "Status Seen: ON"; break;
                 case "2.2": update.statusSeen = "false"; msgDesc = "Status Seen: OFF"; break;
-                case "3.1": update.autoReply = "true"; msgDesc = "Auto Reply: ON"; break;
-                case "3.2": update.autoReply = "false"; msgDesc = "Auto Reply: OFF"; break;
-                case "4.1": update.autoVoice = "true"; msgDesc = "Auto Voice: ON"; break;
-                case "4.2": update.autoVoice = "false"; msgDesc = "Auto Voice: OFF"; break;
-                case "5.1": update.autoSticker = "true"; msgDesc = "Auto Sticker: ON"; break;
-                case "5.2": update.autoSticker = "false"; msgDesc = "Auto Sticker: OFF"; break;
-                case "6.1": update.antiBad = "true"; msgDesc = "Anti Bad: ON"; break;
-                case "6.2": update.antiBad = "false"; msgDesc = "Anti Bad: OFF"; break;
-                case "7.1": update.antiLink = "true"; msgDesc = "Anti Link: ON"; break;
-                case "7.2": update.antiLink = "false"; msgDesc = "Anti Link: OFF"; break;
-                case "8.1": update.antiBot = "true"; msgDesc = "Anti Bot: ON"; break;
-                case "8.2": update.antiBot = "false"; msgDesc = "Anti Bot: OFF"; break;
-                case "9.1": update.onlineStatus = "online"; msgDesc = "Online Status: ONLINE"; break;
-                case "9.2": update.onlineStatus = "offline"; msgDesc = "Online Status: OFFLINE"; break;
-                case "10.1": update.readCommand = "true"; msgDesc = "Read Command: ON"; break;
-                case "10.2": update.readCommand = "false"; msgDesc = "Read Command: OFF"; break;
-                case "11.1": update.presence = "recording"; msgDesc = "Presence: RECORDING"; break;
-                case "11.2": update.presence = "typing"; msgDesc = "Presence: TYPING"; break;
-                case "11.3": update.presence = "off"; msgDesc = "Presence: OFF"; break;
-                case "12.1": update.autoReact = "true"; msgDesc = "Auto React: ON"; break;
-                case "12.2": update.autoReact = "false"; msgDesc = "Auto React: OFF"; break;
-                case "17.1": update.antiDelete = "inbox"; msgDesc = "Anti Delete: INBOX ONLY"; break;
-                case "17.2": update.antiDelete = "group"; msgDesc = "Anti Delete: GROUP ONLY"; break;
-                case "17.3": update.antiDelete = "both"; msgDesc = "Anti Delete: BOTH"; break;
-                case "17.4": update.antiDelete = "false"; msgDesc = "Anti Delete: OFF"; break;
             }
 
             if (Object.keys(update).length > 0) {
@@ -207,15 +200,6 @@ async function connectToWA() {
             return;
         }
 
-        // --- Plugin Hooks ---
-        if (global.pluginHooks) {
-            for (const plugin of global.pluginHooks) {
-                if (plugin.onMessage) {
-                    try { await plugin.onMessage(danuwa, mek); } catch (e) { console.log(e); }
-                }
-            }
-        }
-
         const m = sms(danuwa, mek);
         const isGroup = from.endsWith('@g.us');
         const mode = (config.workMode || "public").toLowerCase();
@@ -224,10 +208,8 @@ async function connectToWA() {
             if (mode === "private" || (mode === "groups" && !isGroup) || (mode === "inbox" && isGroup)) return;
         }
 
-        // --- Command Execution & Reply Filter ---
+        // --- Command Execution ---
         const commandName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : '';
-        
-        // 1. Prefix Commands (.menu වැනි)
         const cmd = commands.find((c) => isCmd && (c.pattern === commandName || (c.alias && c.alias.includes(commandName))));
 
         if (cmd) {
@@ -238,27 +220,6 @@ async function connectToWA() {
                     isGroup, sender, senderNumber, isOwner, reply,
                 });
             } catch (e) { console.error("❌ Command Error:", e); }
-        }
-
-        // 2. Non-Prefix / Reply Commands (Menu එකට අංකයකින් Reply කිරීම)
-        // මේ කොටස අලුතින් එකතු කළා - දැන් අංක ගැහුවම වැඩ කරනවා
-        const textCommands = commands.filter(c => !c.pattern && (c.on === "text" || c.filter));
-        for (let plugin of textCommands) {
-            let runPlugin = false;
-            if (plugin.filter && typeof plugin.filter === 'function') {
-                runPlugin = plugin.filter(body, { sender, isOwner, from, isReply, quotedText });
-            } else if (plugin.on === "text") {
-                runPlugin = true;
-            }
-
-            if (runPlugin) {
-                try {
-                    await plugin.function(danuwa, mek, m, {
-                        from, quoted: mek, body, isCmd, command: "", 
-                        isGroup, sender, senderNumber, isOwner, reply,
-                    });
-                } catch (e) { console.error("❌ Reply Plugin Error:", e); }
-            }
         }
     });
 
