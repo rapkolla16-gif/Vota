@@ -80,6 +80,17 @@ global.pluginHooks.push(antiDeletePlugin);
 
 async function connectToWA() {
     console.log("Connecting VEXTER-MD 🧬...");
+    try {
+    const savedSettings = await require('./lib/settings').findOne({ id: "bot_settings" });
+    if (savedSettings) {
+      config.WORK_MODE = savedSettings.workMode || config.WORK_MODE;
+      config.AUTO_STATUS_SEEN = savedSettings.statusSeen || config.AUTO_STATUS_SEEN;
+      config.AUTO_STATUS_REACT = savedSettings.statusReact || config.AUTO_STATUS_REACT;
+      console.log(`✅ Settings Synced: Mode=${config.WORK_MODE}, Seen=${config.AUTO_STATUS_SEEN}, React=${config.AUTO_STATUS_REACT}`);
+    }
+  } catch (e) {
+    console.log("❌ DB Settings Load Error:", e);
+    }
     await new Promise(resolve => setTimeout(resolve, 2000));
     const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, '/auth_info_baileys/'));
     const { version } = await fetchLatestBaileysVersion();
