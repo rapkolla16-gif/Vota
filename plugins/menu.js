@@ -28,6 +28,9 @@ async(conn, mek, m,{from, quoted, reply}) => {
 │ 🧬 *3* - Owner Commands 👑
 │ 🧬 *4* - Search Commands 🔍
 │ 🧬 *5* - Edit Commands 📷
+│ 🧬 *6* - Anime Commands 🕺
+│ 🧬 *7* - Logo Commands ®️
+│ 🧬 *8* - Main Commands 📦
 │ 
 ╰──────────────────────────⊷
 > *Created By Dexter* 🧬`
