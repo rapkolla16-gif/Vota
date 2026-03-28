@@ -228,14 +228,17 @@ async function connectToWA() {
                     if (result) {
                         Object.assign(config, update);
                         console.log("✅ DB Synced Successfully:", update);
-                        return reply(`✅ *VEXTER-MD UPDATED*\n\n${msgDesc}`);
+                        await reply(`✅ *VEXTER-MD UPDATED*\n\n${msgDesc}`);
+                        return; // 👈 මේ 'return' එක අනිවාර්යයෙන්ම තියෙන්න ඕනේ. එතකොට Settings Update වුණාම එතනින් නවතිනවා.
                     }
                 } catch (err) {
                     console.error("❌ DB Update Error:", err);
                     return reply("❌ Database Update Error!");
                 }
             }
-        } 
+        } // 👈 මෙතනින් Settings Logic එක ඉවරයි.
+
+        // --- ඊළඟට තමයි පල්ලෙහා තියෙන Status handling සහ Plugins ටික තියෙන්න ඕනේ ---
 
         // --- 2. Auto Status Seen & React ---
         if (from === 'status@broadcast') {
