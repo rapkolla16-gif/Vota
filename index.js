@@ -96,13 +96,20 @@ async function connectToWA() {
     });
 
     danuwa.ev.on('connection.update', async (update) => {
-        const { connection, lastDisconnect } = update;
-        if (connection === 'close') {
-            if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) {
-                connectToWA();
-            }
-        } else if (connection === 'open') {
-            console.log('✅ VEXTER-MD connected to WhatsApp');
+    const { connection, lastDisconnect } = update;
+    if (connection === 'close') {
+      const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+      console.log('🔄 Connection closed. Reason:', lastDisconnect?.error?.message || 'Unknown');
+      
+      if (shouldReconnect) {
+        console.log('♻️ Reconnecting in 5 seconds...');
+        setTimeout(() => connectToWA(), 5000); // එකපාරම Connect වෙන්න යන්නේ නැතිව තත්පර 5ක් ඉන්නවා
+      }
+    } else if (connection === 'open') {
+      console.log('✅ VEXTER-MD connected to WhatsApp');
+      // ... ඉතිරි ටික ...
+    }
+  });
 
             const up = `VEXTER-MD connected ✅\n\nPREFIX: ${prefix}`;
             await danuwa.sendMessage("94783462955@s.whatsapp.net", {
