@@ -125,8 +125,6 @@ async function connectToWA() {
         const mek = messages[0];
         if (!mek || !mek.message) return;
 
-        const from = mek.key.remoteJid;
-
         // --- මෙන්න මේ ටික තමයි අලුතින්ම දාන්න ඕනෙ ---
         if (config.presence && config.presence !== 'off') {
             await danuwa.sendPresenceUpdate(config.presence, from);
