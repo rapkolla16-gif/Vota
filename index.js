@@ -46,26 +46,48 @@ async function ensureSessionFile() {
     if (!fs.existsSync(credsPath)) {
         if (!config.SESSION_ID) {
             console.error('❌ SESSION_ID env variable is missing. Cannot restore session.');
+async function ensureSessionFile() {
+    if (!fs.existsSync(credsPath)) {
+        if (!config.SESSION_ID) {
+            console.error('❌ SESSION_ID env variable is missing. Cannot restore session.');
             process.exit(1);
         }
+
+        console.log("🔄 Processing VEXTER-MD Session ID...");
+
+        // --- 🧬 SESSION PREFIX REMOVER (BRANDING BY DEXTER) ---
+        let sessdata = config.SESSION_ID;
+        
+        // පෑයර් එකෙන් එන "VEXTER-MD;" කියන කෑල්ල අයින් කරනවා
+        if (sessdata.startsWith("VEXTER-MD;")) {
+            sessdata = sessdata.replace("VEXTER-MD;", "");
+            console.log("✅ VEXTER-MD Prefix Detected & Processed");
+        }
+        // -----------------------------------------------------
+
         console.log("🔄 creds.json not found. Downloading session from MEGA...");
-        const sessdata = config.SESSION_ID;
+        
+        // Mega Link එකේ සම්පූර්ණ url එක හදනවා (prefix එක අයින් කරපු ID එක පාවිච්චි කරලා)
         const filer = File.fromURL(`https://mega.nz/file/${sessdata}`);
+        
         filer.download((err, data) => {
             if (err) {
-                console.error("❌ Failed to download session file from MEGA:", err);
+                console.error("❌ Failed to download session file from MEGA. Check your ID:", err);
                 process.exit(1);
             }
+            // ෆෝල්ඩර් එක නැත්නම් හදනවා
             fs.mkdirSync(path.join(__dirname, '/auth_info_baileys/'), { recursive: true });
+            // ඩවුන්ලෝඩ් වෙච්ච ඩේටා ටික creds.json විදියට සේව් කරනවා
             fs.writeFileSync(credsPath, data);
+            
             console.log("✅ Session downloaded and saved. Restarting bot...");
             setTimeout(() => { connectToWA(); }, 2000);
         });
     } else {
+        // දැනටමත් ෆයිල් එක තියෙනවා නම් කෙළින්ම කනෙක්ට් වෙනවා
         setTimeout(() => { connectToWA(); }, 1000);
     }
 }
-
 const antiDeletePlugin = require('./plugins/antidelete.js');
 global.pluginHooks = global.pluginHooks || [];
 global.pluginHooks.push(antiDeletePlugin);
