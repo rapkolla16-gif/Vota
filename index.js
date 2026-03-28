@@ -168,7 +168,7 @@ if (mek.key?.remoteJid === 'status@broadcast') {
           text: randomEmoji,
           key: mek.key,
         }
-      });
+      }
 
       console.log(`[✓] Reacted to status of ${mek.key.participant} with ${randomEmoji}`);
     } catch (e) {
