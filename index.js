@@ -230,11 +230,20 @@ async function connectToWA() {
             }
 
             if (Object.keys(update).length > 0) {
-                await Settings.findOneAndUpdate({ id: "bot_settings" }, update, { upsert: true });
-                Object.assign(config, update);
-                return reply(`✅ *VEXTER-MD UPDATED*\n\n${msgDesc}`);
+                try {
+                    // මෙතන id: "bot_settings" වෙනුවට මෙහෙම දාලා බලන්න
+                    const result = await Settings.findOneAndUpdate({}, update, { upsert: true, new: true });
+                    
+                    if (result) {
+                        Object.assign(config, update); 
+                        console.log("✅ Database Updated:", update);
+                        return reply(`✅ *VEXTER-MD UPDATED*\n\n${msgDesc}`);
+                    }
+                } catch (err) {
+                    console.error("❌ DB Update Error:", err);
+                    return reply("❌ Database එක Update කිරීමේදී දෝෂයක් ඇති විය.");
+                }
             }
-        }
 
         // --- 2. Status handling ---
         if (from === 'status@broadcast') {
