@@ -229,24 +229,27 @@ async function connectToWA() {
         // --- Command Execution & Reply Filter ---
         const commandName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : '';
         
-        // මෙතනදී අපි 'commands' ඇතුළේ Filter සහ Pattern දෙකම පරීක්ෂා කරනවා
+        // **UPDATED Logic**: Prefix නැතිව වුණත් filter එක වැඩ කරන විදියට මෙතන වෙනස් කළා
         const cmd = commands.find((c) => {
+            // 1. Prefix සහිත සාමාන්‍ය කමාන්ඩ් (.menu වැනි)
             if (isCmd && (c.pattern === commandName || (c.alias && c.alias.includes(commandName)))) return true;
-            if (c.filter && typeof c.filter === 'function') {
-                // Reply එකක් විය යුතු අතර එය අනිවාර්යයෙන්ම "MAIN MENU" සහිත පැනල් එකකට විය යුතුය
+            
+            // 2. Filter එකක් සහිත කමාන්ඩ් (Menu එකට අංකයකින් Reply කිරීම වැනි)
+            if (!isCmd && c.filter && typeof c.filter === 'function') {
                 return isReply && quotedText.includes("MAIN MENU") && c.filter(body, { sender, isOwner });
             }
             return false;
         });
 
         if (cmd) {
+            // React only for prefix commands to avoid reacting to every number reply
             if (isCmd && cmd.react) danuwa.sendMessage(from, { react: { text: cmd.react, key: mek.key } });
             try {
                 await cmd.function(danuwa, mek, m, {
                     from, quoted: mek, body, isCmd, command: commandName, 
                     isGroup, sender, senderNumber, isOwner, reply,
                 });
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("❌ Command Error:", e); }
         }
     });
 
