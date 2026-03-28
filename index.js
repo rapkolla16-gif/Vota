@@ -136,8 +136,14 @@ async function connectToWA() {
         const isCmd = body.startsWith(prefix);
         const reply = (text) => danuwa.sendMessage(from, { text }, { quoted: mek });
 
+        // --- 🛠️ FIXED QUOTED TEXT LOGIC ---
         const isReply = type === 'extendedTextMessage' && mek.message.extendedTextMessage.contextInfo ? mek.message.extendedTextMessage.contextInfo.quotedMessage : null;
-        const quotedText = isReply ? (mek.message.extendedTextMessage.contextInfo.quotedMessage.conversation || mek.message.extendedTextMessage.contextInfo.quotedMessage.extendedTextMessage?.text || "") : "";
+        let quotedText = "";
+        if (isReply) {
+            const qMsg = mek.message.extendedTextMessage.contextInfo.quotedMessage;
+            const qType = getContentType(qMsg);
+            quotedText = (qType === 'conversation') ? qMsg.conversation : (qType === 'extendedTextMessage') ? qMsg.extendedTextMessage.text : (qMsg[qType]?.caption || "");
+        }
 
         // --- 🧬 AUTO COMMAND LIST GENERATOR 🧬 ---
         if (isReply && !isCmd && quotedText.toUpperCase().includes("MAIN MENU")) {
@@ -151,19 +157,17 @@ async function connectToWA() {
             else if (input === '4') { category = "search"; subTitle = "SEARCH MENU"; }
 
             if (category) {
-                // Commands array එකෙන් අදාළ category එකට තියෙන commands ටික විතරක් ගන්නවා
-                const filteredCmds = commands.filter(cmd => cmd.category === category);
+                const filteredCmds = commands.filter(cmd => cmd.category && cmd.category.toLowerCase() === category.toLowerCase());
                 
                 let listText = `╭───「 *${subTitle}* 」───⊷\n│\n`;
-                
                 if (filteredCmds.length > 0) {
+                    filteredCmds.sort((a, b) => a.pattern.localeCompare(b.pattern));
                     filteredCmds.forEach(cmd => {
                         listText += `│ 🧬 *${prefix}${cmd.pattern}*\n`;
                     });
                 } else {
-                    listText += `│ ❌ No commands found.\n`;
+                    listText += `│ ❌ No commands found for ${category}.\n`;
                 }
-                
                 listText += `│\n╰──────────────────────────⊷\n> *Created By Dexter* 🧬`;
 
                 return await danuwa.sendMessage(from, { 
