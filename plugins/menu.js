@@ -27,7 +27,8 @@ async(conn, mek, m,{from, quoted, reply}) => {
 │ 🧬 *2* - Group Commands 👥
 │ 🧬 *3* - Owner Commands 👑
 │ 🧬 *4* - Search Commands 🔍
-│
+│ 🧬 *5* - Edit Commands 📷
+│ 
 ╰──────────────────────────⊷
 > *Created By Dexter* 🧬`
 
@@ -40,7 +41,7 @@ async(conn, mek, m,{from, quoted, reply}) => {
                     body: "Select an option by replying with the number",
                     mediaType: 1,
                     thumbnailUrl: config.ALIVE_IMG,
-                    renderLargerThumbnail: true,
+                    renderLargerThumbnail: false,
                     sourceUrl: "https://wa.me/94783462955"
                 }
             }
