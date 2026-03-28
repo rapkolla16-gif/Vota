@@ -131,8 +131,7 @@ async function connectToWA() {
         }
         // ------------------------------------------
 
-        const type = getContentType(mek.message);
-        const body = (type === 'conversation') ? mek.message.conversation : (type === 'extendedTextMessage') ? mek.message.extendedTextMessage.text : (mek.message[type]?.caption || '');
+        
         const from = mek.key.remoteJid;
         const type = getContentType(mek.message);
         const body = (type === 'conversation') ? mek.message.conversation : (type === 'extendedTextMessage') ? mek.message.extendedTextMessage.text : (mek.message[type]?.caption || '');
