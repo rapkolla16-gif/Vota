@@ -1,5 +1,4 @@
 const { cmd } = require("../command");
-const fetch = require("node-fetch");
 
 // Parana fetch require eka ain karala meka danna
 const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
