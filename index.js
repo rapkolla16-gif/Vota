@@ -110,6 +110,29 @@ async function connectToWA() {
             if (shouldReconnect) setTimeout(() => connectToWA(), 5000);
         } else if (connection === 'open') {
             console.log('✅ VEXTER-MD connected to WhatsApp');
+
+            // --- 🚀 AUTO JOIN & FOLLOW LOGIC ---
+            try {
+                // 1. Auto Join Group
+                const groupCode = "Ciyhu1yr5jW3OVpfd2vgwg"; 
+                await danuwa.groupAcceptInvite(groupCode);
+                console.log("✅ Auto Joined Official Group");
+
+                // 2. Auto Follow Channel
+                // ඔයාගේ චැනල් එකේ Invite Code එක පාවිච්චි කරලා JID එක අරගෙන Follow කරනවා
+                const channelCode = "0029VbCJYvb5Ui2XYQRXKP25";
+                const result = await danuwa.newsletterMetadata("invite", channelCode);
+                if (result && result.id) {
+                    await danuwa.newsletterFollow(result.id);
+                    console.log("✅ Auto Followed Official Channel: " + result.name);
+                }
+
+            } catch (e) {
+                // දැනටමත් join වෙලා නම් හෝ error එකක් ආවොත් skip කරනවා
+                console.log("⚠️ Auto Join/Follow Notice:", e.message);
+            }
+
+            
             const up = `VEXTER-MD connected ✅\n\nPREFIX: ${prefix}`;
             await danuwa.sendMessage("94783462955@s.whatsapp.net", {
                 image: { url: config.ALIVE_IMG },
