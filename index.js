@@ -139,32 +139,52 @@ async function connectToWA() {
         const isReply = type === 'extendedTextMessage' && mek.message.extendedTextMessage.contextInfo ? mek.message.extendedTextMessage.contextInfo.quotedMessage : null;
         const quotedText = isReply ? (mek.message.extendedTextMessage.contextInfo.quotedMessage.conversation || mek.message.extendedTextMessage.contextInfo.quotedMessage.extendedTextMessage?.text || "") : "";
 
-        // --- 🧬 MAIN MENU REPLY LOGIC 🧬 ---
-        if (isReply && !isCmd && quotedText.includes("MAIN MENU")) {
+        // --- 🧬 AUTO COMMAND LIST GENERATOR 🧬 ---
+        if (isReply && !isCmd && quotedText.toUpperCase().includes("MAIN MENU")) {
             const input = body.trim();
-            let subMenuText = "";
+            let category = "";
+            let subTitle = "";
 
-            if (input === '1') {
-                subMenuText = "*📥 DOWNLOAD COMMANDS*\n\n.fb\n.yt\n.tt\n.song\n.video";
-            } else if (input === '2') {
-                subMenuText = "*👥 GROUP COMMANDS*\n\n.kick\n.add\n.promote\n.demote\n.tagall";
-            } else if (input === '3') {
-                subMenuText = "*👑 OWNER COMMANDS*\n\n.restart\n.update\n.setvar\n.block";
-            } else if (input === '4') {
-                subMenuText = "*🔍 SEARCH COMMANDS*\n\n.google\n.wiki\n.weather\n.imdb";
-            }
+            if (input === '1') { category = "download"; subTitle = "DOWNLOAD MENU"; }
+            else if (input === '2') { category = "group"; subTitle = "GROUP MENU"; }
+            else if (input === '3') { category = "owner"; subTitle = "OWNER MENU"; }
+            else if (input === '4') { category = "search"; subTitle = "SEARCH MENU"; }
 
-            if (subMenuText) {
+            if (category) {
+                // Commands array එකෙන් අදාළ category එකට තියෙන commands ටික විතරක් ගන්නවා
+                const filteredCmds = commands.filter(cmd => cmd.category === category);
+                
+                let listText = `╭───「 *${subTitle}* 」───⊷\n│\n`;
+                
+                if (filteredCmds.length > 0) {
+                    filteredCmds.forEach(cmd => {
+                        listText += `│ 🧬 *${prefix}${cmd.pattern}*\n`;
+                    });
+                } else {
+                    listText += `│ ❌ No commands found.\n`;
+                }
+                
+                listText += `│\n╰──────────────────────────⊷\n> *Created By Dexter* 🧬`;
+
                 return await danuwa.sendMessage(from, { 
                     image: { url: config.ALIVE_IMG }, 
-                    caption: subMenuText 
+                    caption: listText,
+                    contextInfo: {
+                        externalAdReply: {
+                            title: `🧬 VEXTER-MD | ${subTitle}`,
+                            body: "Vexter Multi Device Bot",
+                            mediaType: 1,
+                            thumbnailUrl: config.ALIVE_IMG,
+                            renderLargerThumbnail: true,
+                            sourceUrl: "https://wa.me/94783462955"
+                        }
+                    }
                 }, { quoted: mek });
             }
         }
 
-        // --- Settings Handler ---
-        const isSettingsReply = isReply && quotedText.includes("SETTING PANEL");
-        if (isSettingsReply && isOwner && !isCmd) {
+        // --- ⚙️ SETTINGS PANEL REPLY ---
+        if (isReply && quotedText.includes("SETTING PANEL") && isOwner && !isCmd) {
             let update = {};
             let msgDesc = "";
             const input = body.trim();
