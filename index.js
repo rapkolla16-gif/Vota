@@ -80,7 +80,6 @@ async function connectToWA() {
             config.workMode = savedSettings.workMode || config.workMode;
             config.statusSeen = savedSettings.statusSeen || config.statusSeen;
             config.statusReact = savedSettings.statusReact || config.statusReact;
-            config.presence = savedSettings.presence || config.presence;
             console.log(`✅ Settings Synced From DB`);
         }
     } catch (e) {
@@ -129,6 +128,10 @@ async function connectToWA() {
         if (!mek || !mek.message) return;
 
         const from = mek.key.remoteJid;
+        if (config.presence && config.presence !== 'off') {
+            await danuwa.sendPresenceUpdate(config.presence, from).catch(() => {});
+        }
+
         const type = getContentType(mek.message);
         const body = (type === 'conversation') ? mek.message.conversation : (type === 'extendedTextMessage') ? mek.message.extendedTextMessage.text : (mek.message[type]?.caption || '');
         const sender = mek.key.fromMe ? danuwa.user.id : (mek.key.participant || mek.key.remoteJid);
@@ -137,15 +140,14 @@ async function connectToWA() {
         const isCmd = body.startsWith(prefix);
         const reply = (text) => danuwa.sendMessage(from, { text }, { quoted: mek });
 
-        // --- 1. Presence Update Logic ---
-        if (config.presence && config.presence !== 'off') {
-            await danuwa.sendPresenceUpdate(config.presence, from).catch(() => {});
-        }
-
-        // --- 2. Dashboard Logic (For Owner Settings) ---
-        const dashboardPatterns = ["1.1","1.2","1.3","1.4","2.1","2.2","3.1","3.2","4.1","4.2","5.1","5.2","6.1","6.2","7.1","7.2","8.1","8.2","9.1","9.2","10.1","10.2","11.1","11.2","11.3","12.1","12.2","14.1","14.2","15.1","15.2","16.1","16.2","17.1","17.2","17.3","17.4","18.1","18.2","19.1","19.2","20.1","20.2","22.1","22.2"];
+        // --- Dashboard & Settings Logic ---
+        const isReply = type === 'extendedTextMessage' && mek.message.extendedTextMessage.contextInfo ? mek.message.extendedTextMessage.contextInfo.quotedMessage : null;
+        const quotedText = isReply ? (mek.message.extendedTextMessage.contextInfo.quotedMessage.conversation || mek.message.extendedTextMessage.contextInfo.quotedMessage.extendedTextMessage?.text || "") : "";
         
-        if (!isCmd && isOwner && dashboardPatterns.includes(body.trim())) {
+        // පැනල් එකට කරන රිප්ලයි එකක්දැයි පරීක්ෂා කිරීම (Header එක "SETTING PANEL" ලෙස තිබිය යුතුය)
+        const isSettingsReply = isReply && quotedText.includes("SETTING PANEL");
+
+        if (isSettingsReply && isOwner && !isCmd) {
             let update = {};
             let msgDesc = "";
             const input = body.trim();
@@ -158,45 +160,46 @@ async function connectToWA() {
                 case "1.4": update.workMode = "inbox"; msgDesc = "Work Mode: INBOX"; break;
                 case "2.1": update.statusSeen = "true"; msgDesc = "Status Seen: ON"; break;
                 case "2.2": update.statusSeen = "false"; msgDesc = "Status Seen: OFF"; break;
+                case "3.1": update.autoReply = "true"; msgDesc = "Auto Reply: ON"; break;
+                case "3.2": update.autoReply = "false"; msgDesc = "Auto Reply: OFF"; break;
+                case "4.1": update.autoVoice = "true"; msgDesc = "Auto Voice: ON"; break;
+                case "4.2": update.autoVoice = "false"; msgDesc = "Auto Voice: OFF"; break;
+                case "5.1": update.autoSticker = "true"; msgDesc = "Auto Sticker: ON"; break;
+                case "5.2": update.autoSticker = "false"; msgDesc = "Auto Sticker: OFF"; break;
+                case "6.1": update.antiBad = "true"; msgDesc = "Anti Bad: ON"; break;
+                case "6.2": update.antiBad = "false"; msgDesc = "Anti Bad: OFF"; break;
+                case "7.1": update.antiLink = "true"; msgDesc = "Anti Link: ON"; break;
+                case "7.2": update.antiLink = "false"; msgDesc = "Anti Link: OFF"; break;
+                case "8.1": update.antiBot = "true"; msgDesc = "Anti Bot: ON"; break;
+                case "8.2": update.antiBot = "false"; msgDesc = "Anti Bot: OFF"; break;
+                case "9.1": update.onlineStatus = "online"; msgDesc = "Online Status: ONLINE"; break;
+                case "9.2": update.onlineStatus = "offline"; msgDesc = "Online Status: OFFLINE"; break;
+                case "10.1": update.readCommand = "true"; msgDesc = "Read Command: ON"; break;
+                case "10.2": update.readCommand = "false"; msgDesc = "Read Command: OFF"; break;
                 case "11.1": update.presence = "recording"; msgDesc = "Presence: RECORDING"; break;
                 case "11.2": update.presence = "typing"; msgDesc = "Presence: TYPING"; break;
                 case "11.3": update.presence = "off"; msgDesc = "Presence: OFF"; break;
-                // ... (Add your other cases here)
+                case "12.1": update.autoReact = "true"; msgDesc = "Auto React: ON"; break;
+                case "12.2": update.autoReact = "false"; msgDesc = "Auto React: OFF"; break;
+                case "17.1": update.antiDelete = "inbox"; msgDesc = "Anti Delete: INBOX ONLY"; break;
+                case "17.2": update.antiDelete = "group"; msgDesc = "Anti Delete: GROUP ONLY"; break;
+                case "17.3": update.antiDelete = "both"; msgDesc = "Anti Delete: BOTH"; break;
+                case "17.4": update.antiDelete = "false"; msgDesc = "Anti Delete: OFF"; break;
             }
 
             if (Object.keys(update).length > 0) {
                 try {
                     await Settings.findOneAndUpdate({}, { $set: update }, { upsert: true });
                     Object.assign(config, update);
-                    return await reply(`✅ *VEXTER-MD UPDATED*\n\n${msgDesc}`);
-                } catch (err) { console.error(err); }
+                    await reply(`✅ *VEXTER-MD UPDATED*\n\n${msgDesc}`);
+                    return;
+                } catch (err) {
+                    console.error("❌ DB Update Error:", err);
+                }
             }
         }
 
-        // --- 3. Command & Filter Execution (Fixes Menu Logic) ---
-        const m = sms(danuwa, mek);
-        const commandName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : '';
-        
-        const cmd = commands.find((c) => 
-            (isCmd && (c.pattern === commandName || (c.alias && c.alias.includes(commandName)))) || 
-            (c.filter && typeof c.filter === 'function' && c.filter(body, { sender, isOwner }))
-        );
-
-        if (cmd) {
-            const isGroup = from.endsWith('@g.us');
-            const mode = (config.workMode || "public").toLowerCase();
-            if (!isOwner && (mode === "private" || (mode === "groups" && !isGroup) || (mode === "inbox" && isGroup))) return;
-
-            if (cmd.react) danuwa.sendMessage(from, { react: { text: cmd.react, key: mek.key } });
-            try {
-                await cmd.function(danuwa, mek, m, {
-                    from, quoted: mek, body, isCmd, command: commandName, isGroup, sender, senderNumber, isOwner, reply,
-                });
-            } catch (e) { console.error(e); }
-            return; 
-        }
-
-        // --- 4. Auto Status Seen & React ---
+        // --- Auto Status Seen & React ---
         if (from === 'status@broadcast') {
             if (config.statusSeen === "true") await danuwa.readMessages([mek.key]);
             if (config.statusReact === "true") {
@@ -207,12 +210,35 @@ async function connectToWA() {
             return;
         }
 
-        // --- 5. Plugin Hooks ---
+        // --- Plugin Hooks ---
         if (global.pluginHooks) {
             for (const plugin of global.pluginHooks) {
                 if (plugin.onMessage) {
                     try { await plugin.onMessage(danuwa, mek); } catch (e) { console.log(e); }
                 }
+            }
+        }
+
+        const m = sms(danuwa, mek);
+        const isGroup = from.endsWith('@g.us');
+        const mode = (config.workMode || "public").toLowerCase();
+        
+        if (!isOwner) {
+            if (mode === "private" || (mode === "groups" && !isGroup) || (mode === "inbox" && isGroup)) return;
+        }
+
+        // --- Command Execution ---
+        const commandName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : '';
+        if (isCmd) {
+            const cmd = commands.find((c) => c.pattern === commandName || (c.alias && c.alias.includes(commandName)));
+            if (cmd) {
+                if (cmd.react) danuwa.sendMessage(from, { react: { text: cmd.react, key: mek.key } });
+                try {
+                    await cmd.function(danuwa, mek, m, {
+                        from, quoted: mek, body, isCmd, command: commandName, 
+                        isGroup, sender, senderNumber, isOwner, reply,
+                    });
+                } catch (e) { console.error(e); }
             }
         }
     });
