@@ -1,75 +1,71 @@
-const { cmd, commands } = require("../command");
-const fs = require("fs");
-const path = require("path");
+const { cmd, commands } = require('../command');
+const config = require('../config');
 
-const pendingMenu = {};
-const numberEmojis = ["0️⃣","1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣"];
-
-const headerImage = "https://i.ibb.co/ZRXhhYxH/db1c9ed7-6513-49da-8105-f21c73583135.png";
+// Global variable එකක් පාවිච්චි කරමු index.js එකට පේන්න
+global.pendingMenu = global.pendingMenu || {};
 
 cmd({
-  pattern: "menu",
-  react: "📋",
-  desc: "Show command categories",
-  category: "main",
-  filename: __filename
-}, async (test, m, msg, { from, sender, reply }) => {
-  await test.sendMessage(from, { react: { text: "📋", key: m.key } });
+    pattern: "menu",
+    alias: ["panel", "list"],
+    desc: "Main Menu of the Bot",
+    category: "main",
+    react: "🧬",
+    filename: __filename
+},
+async (danuwa, mek, m, { from, reply, sender }) => {
+    try {
+        let menuText = `*🧬 VEXTER-MD MAIN MENU 🧬*\n\n`;
+        menuText += `*1.* Download Commands 📥\n`;
+        menuText += `*2.* Group Commands 👥\n`;
+        menuText += `*3.* Owner Commands 👑\n`;
+        menuText += `*4.* Search Commands 🔍\n\n`;
+        menuText += `> Reply with a number to see sub-commands.\n`;
+        menuText += `_MAIN MENU_`; // මේක අනිවාර්යයි Index logic එකට
 
-  const commandMap = {};
+        const sentMsg = await danuwa.sendMessage(from, { 
+            image: { url: config.ALIVE_IMG }, 
+            caption: menuText 
+        }, { quoted: mek });
 
-  for (const command of commands) {
-    if (command.dontAddCommandList) continue;
-    const category = (command.category || "MISC").toUpperCase();
-    if (!commandMap[category]) commandMap[category] = [];
-    commandMap[category].push(command);
-  }
+        // එවපු මැසේජ් එකේ ID එක save කරගන්නවා reply එක අඳුරගන්න
+        global.pendingMenu[sender] = sentMsg.key.id;
 
-  const categories = Object.keys(commandMap);
-
-  let menuText = `*MAIN MENU*\n`;
-  menuText += `───────────────────────\n`;
-
-  categories.forEach((cat, i) => {
-    const emojiIndex = (i + 1).toString().split("").map(n => numberEmojis[n]).join("");
-    menuText += `┃ ${emojiIndex} *${cat}* (${commandMap[cat].length})\n`;
-  });
-
-  menuText += `───────────────────────\n`;
-
-  await test.sendMessage(from, {
-    image: { url: headerImage },
-    caption: menuText,
-  }, { quoted: m });
-
-  pendingMenu[sender] = { step: "category", commandMap, categories };
+    } catch (e) {
+        console.log(e);
+        reply(`❌ Error: ${e}`);
+    }
 });
 
+// Reply එක Handle කරන Filter එක
 cmd({
-  filter: (text, { sender }) => pendingMenu[sender] && pendingMenu[sender].step === "category" && /^[1-9][0-9]*$/.test(text.trim())
-}, async (test, m, msg, { from, body, sender, reply }) => {
-  await test.sendMessage(from, { react: { text: "✅", key: m.key } });
+    on: "text",
+    filter: (text, { sender }) => {
+        // රිප්ලයි කරන කෙනා කලින් මෙනු එක ගත්ත කෙනාමද බලනවා
+        return global.pendingMenu && global.pendingMenu[sender];
+    },
+    filename: __filename
+},
+async (danuwa, mek, m, { from, body, sender, reply }) => {
+    // රිප්ලයි එකේ තියෙන්නේ අංකයක්ද බලනවා
+    if (!global.pendingMenu[sender]) return;
+    
+    const input = body.trim();
+    let subMenu = "";
 
-  const { commandMap, categories } = pendingMenu[sender];
-  const index = parseInt(body.trim()) - 1;
-  if (index < 0 || index >= categories.length) return reply("❌ Invalid selection.");
+    if (input === '1') {
+        subMenu = "*📥 DOWNLOAD COMMANDS*\n\n.fb\n.yt\n.tt\n.song\n.video";
+    } else if (input === '2') {
+        subMenu = "*👥 GROUP COMMANDS*\n\n.kick\n.add\n.promote\n.demote\n.tagall";
+    } else if (input === '3') {
+        subMenu = "*👑 OWNER COMMANDS*\n\n.restart\n.update\n.setvar\n.block";
+    } else if (input === '4') {
+        subMenu = "*🔍 SEARCH COMMANDS*\n\n.google\n.wiki\n.weather\n.imdb";
+    } else {
+        return; // අංකයක් නෙවෙයි නම් මුකුත් කරන්නේ නැහැ
+    }
 
-  const selectedCategory = categories[index];
-  const cmdsInCategory = commandMap[selectedCategory];
-
-  let cmdText = `*${selectedCategory} COMMANDS*\n`;
-  cmdsInCategory.forEach(c => {
-    const patterns = [c.pattern, ...(c.alias || [])].filter(Boolean).map(p => `.${p}`);
-    cmdText += `🛡️ ${patterns.join(", ")} - ${c.desc || "No description"}\n`;
-  });
-  cmdText += `───────────────────────\n`;
-  cmdText += `Total Commands: ${cmdsInCategory.length}\n`;
-
-  await test.sendMessage(from, {
-    image: { url: headerImage },
-    caption: cmdText,
-  }, { quoted: m });
-
-  delete pendingMenu[sender];
+    await reply(subMenu);
+    
+    // එක පාරක් reply කළාම clear කරනවා (නැත්නම් දිගටම අංක වලට reply කරයි)
+    delete global.pendingMenu[sender];
 });
-
