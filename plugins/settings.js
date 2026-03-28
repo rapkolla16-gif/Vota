@@ -1,5 +1,6 @@
 const { cmd } = require("../command");
-const Settings = require("../lib/settings"); // Schema path eka check karන්න
+const Settings = require("../lib/settings");
+const config = require("../config"); // මේක අනිවාර්යයෙන්ම දාන්න 👈
 
 cmd(
   {
@@ -8,11 +9,14 @@ cmd(
     category: "owner",
     filename: __filename,
   },
-  async (danuwa, mek, m, { from, isOwner, q, reply }) => {
-    if (!isOwner) return reply("❌ *Access Denied:* Owner only.");
+  async (danuwa, mek, m, { from, isOwner, senderNumber, q, reply }) => {
+    
+    // index.js එකෙන් එන isOwner එකට අමතරව කෙලින්ම config එකෙනුත් චෙක් කරමු
+    const isBotOwner = isOwner || (config.OWNER_NUMBER && config.OWNER_NUMBER.includes(senderNumber));
+
+    if (!isBotOwner) return reply("❌ *Access Denied:* Owner only.");
 
     if (!q) {
-        // Database eken ganna puluwan current status eka
         const data = await Settings.findOne({ id: "bot_settings" }) || { workMode: "public" };
         const statusMsg = `⚙️ *VEXTER-MD SYSTEM SETTINGS* ⚙️\n\n` +
                           `*Current Mode:* ${data.workMode.toUpperCase()}\n\n` +
@@ -34,12 +38,15 @@ cmd(
     else if (choice === "4") newMode = "inbox";
     else return reply("❌ *Invalid Selection:* Choose 1-4.");
 
-    // Database ekata update kireema
+    // Database එක update කිරීම
     await Settings.findOneAndUpdate(
         { id: "bot_settings" },
         { workMode: newMode },
         { upsert: true, new: true }
     );
+    
+    // Runtime එකේදී config එකත් update කරන්න (බොට් Restart වෙනකම් ඉන්න ඕන වෙන්නේ නැහැ එතකොට)
+    config.WORK_MODE = newMode;
 
     return reply(`✅ *Success:* Bot mode permanently updated to *${newMode.toUpperCase()}*.`);
   }
