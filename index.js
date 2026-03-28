@@ -95,35 +95,38 @@ async function connectToWA() {
         generateHighQualityLinkPreview: true,
     });
 
-    danuwa.ev.on('connection.update', async (update) => {
+danuwa.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect } = update;
+
     if (connection === 'close') {
       const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
       console.log('🔄 Connection closed. Reason:', lastDisconnect?.error?.message || 'Unknown');
       
       if (shouldReconnect) {
         console.log('♻️ Reconnecting in 5 seconds...');
-        setTimeout(() => connectToWA(), 5000); // එකපාරම Connect වෙන්න යන්නේ නැතිව තත්පර 5ක් ඉන්නවා
+        setTimeout(() => connectToWA(), 5000); 
       }
-    } else if (connection === 'open') {
+    } 
+    else if (connection === 'open') {
       console.log('✅ VEXTER-MD connected to WhatsApp');
-      // ... ඉතිරි ටික ...
+
+      // මැසේජ් එක යවන්නේ connection එක 'open' වුණාට පස්සේ විතරයි
+      const up = `VEXTER-MD connected ✅\n\nPREFIX: ${prefix}`;
+      
+      await danuwa.sendMessage("94783462955@s.whatsapp.net", {
+          image: { url: `https://i.ibb.co/ZRXhhYxH/db1c9ed7-6513-49da-8105-f21c73583135.png` },
+          caption: up
+      });
+
+      // Plugins load කරන කොටස
+      fs.readdirSync("./plugins/").forEach((plugin) => {
+          if (path.extname(plugin).toLowerCase() === ".js") {
+              require(`./plugins/${plugin}`);
+          }
+      });
     }
   });
 
-            const up = `VEXTER-MD connected ✅\n\nPREFIX: ${prefix}`;
-            await danuwa.sendMessage("94783462955@s.whatsapp.net", {
-                image: { url: `https://i.ibb.co/ZRXhhYxH/db1c9ed7-6513-49da-8105-f21c73583135.png` },
-                caption: up
-            });
-
-            fs.readdirSync("./plugins/").forEach((plugin) => {
-                if (path.extname(plugin).toLowerCase() === ".js") {
-                    require(`./plugins/${plugin}`);
-                }
-            });
-        }
-    });
 
     danuwa.ev.on('creds.update', saveCreds);
 
