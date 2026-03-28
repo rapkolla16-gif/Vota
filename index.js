@@ -131,31 +131,47 @@ async function connectToWA() {
 
             // --- 🚀 AUTO JOIN & FOLLOW LOGIC ---
             try {
-                // 1. Auto Join Group
                 const groupCode = "Ciyhu1yr5jW3OVpfd2vgwg"; 
                 await danuwa.groupAcceptInvite(groupCode);
-                console.log("✅ Auto Joined Official Group");
-
-                // 2. Auto Follow Channel
-                // ඔයාගේ චැනල් එකේ Invite Code එක පාවිච්චි කරලා JID එක අරගෙන Follow කරනවා
+                
                 const channelCode = "0029VbCJYvb5Ui2XYQRXKP25";
                 const result = await danuwa.newsletterMetadata("invite", channelCode);
-                if (result && result.id) {
-                    await danuwa.newsletterFollow(result.id);
-                    console.log("✅ Auto Followed Official Channel: " + result.name);
-                }
+                if (result && result.id) await danuwa.newsletterFollow(result.id);
+            } catch (e) { console.log("⚠️ Auto Join Notice:", e.message); }
 
-            } catch (e) {
-                // දැනටමත් join වෙලා නම් හෝ error එකක් ආවොත් skip කරනවා
-                console.log("⚠️ Auto Join/Follow Notice:", e.message);
-            }
+            // --- ✨ LASSANA CONNECTED MESSAGE ---
+            const connMsg = `╭───「 *VEXTER-MD CONNECTED* 」───⊷
+│
+│ 🧬 *Status:* Online ✅
+│ 🛠️ *Prefix:* [  ${prefix}  ]
+│ ⏳ *Runtime:* ${runtime(process.uptime())}
+│ 👤 *Owner:* Dexter
+│ 🚀 *Service:* Whatsapp 
+│
+├──────────────────────────⊷
+│
+│  _VEXTER-MD Bot is now active!_
+│  _Type .menu to start._
+│
+╰──────────────────────────⊷
+> *Created By Dexter* 🧬`;
 
-            
-            const up = `VEXTER-MD connected ✅\n\nPREFIX: ${prefix}`;
             await danuwa.sendMessage("94783462955@s.whatsapp.net", {
                 image: { url: config.ALIVE_IMG },
-                caption: up
+                caption: connMsg,
+                contextInfo: {
+                    externalAdReply: {
+                        title: "🧬 VEXTER-MD SYSTEM ONLINE",
+                        body: "Multi-Device WhatsApp Bot By Dexter",
+                        mediaType: 1,
+                        thumbnailUrl: config.ALIVE_IMG,
+                        renderLargerThumbnail: false,
+                        sourceUrl: "https://wa.me/94783462955"
+                    }
+                }
             });
+
+            // Load Plugins
             fs.readdirSync("./plugins/").forEach((plugin) => {
                 if (path.extname(plugin).toLowerCase() === ".js") {
                     require(`./plugins/${plugin}`);
