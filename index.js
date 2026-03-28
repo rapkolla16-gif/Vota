@@ -72,9 +72,11 @@ global.pluginHooks.push(antiDeletePlugin);
 
 async function connectToWA() {
     console.log("Connecting VEXTER-MD 🧬...");
+    
+    // Load Settings from DB at Startup
     try {
         const Settings = require('./lib/settings');
-        const savedSettings = await Settings.findOne({ id: "bot_settings" });
+        const savedSettings = await Settings.findOne({}); 
         if (savedSettings) {
             config.WORK_MODE = savedSettings.workMode || config.WORK_MODE;
             config.AUTO_STATUS_SEEN = savedSettings.statusSeen || config.AUTO_STATUS_SEEN;
@@ -135,6 +137,7 @@ async function connectToWA() {
         const isCmd = body.startsWith(prefix);
         const reply = (text) => danuwa.sendMessage(from, { text }, { quoted: mek });
 
+        // --- 1. Settings Panel Logic ---
         if (!isCmd && isOwner && body) {
             let update = {};
             let msgDesc = "";
@@ -193,9 +196,15 @@ async function connectToWA() {
 
             if (Object.keys(update).length > 0) {
                 try {
-                    const result = await Settings.findOneAndUpdate({ id: "bot_settings" }, update, { upsert: true, new: true });
+                    const result = await Settings.findOneAndUpdate(
+                        {}, 
+                        { $set: update }, 
+                        { upsert: true, new: true, returnDocument: 'after' }
+                    );
+
                     if (result) {
                         Object.assign(config, update);
+                        console.log("✅ DB Synced:", update);
                         return reply(`✅ *VEXTER-MD UPDATED*\n\n${msgDesc}`);
                     }
                 } catch (err) {
@@ -203,8 +212,9 @@ async function connectToWA() {
                     return reply("❌ Database Update Error!");
                 }
             }
-        }
+        } 
 
+        // --- 2. Status handling ---
         if (from === 'status@broadcast') {
             if (config.AUTO_STATUS_SEEN === "true") await danuwa.readMessages([mek.key]);
             if (config.AUTO_STATUS_REACT === "true") {
@@ -215,6 +225,7 @@ async function connectToWA() {
             return;
         }
 
+        // --- 3. Plugin Hooks ---
         if (global.pluginHooks) {
             for (const plugin of global.pluginHooks) {
                 if (plugin.onMessage) {
@@ -231,6 +242,7 @@ async function connectToWA() {
             if (mode === "private" || (mode === "groups" && !isGroup) || (mode === "inbox" && isGroup)) return;
         }
 
+        // --- 4. Command Handler ---
         const commandName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : '';
         if (isCmd) {
             const cmd = commands.find((c) => c.pattern === commandName || (c.alias && c.alias.includes(commandName)));
