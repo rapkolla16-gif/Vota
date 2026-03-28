@@ -106,7 +106,8 @@ async function connectToWA() {
       console.log('✅ VEXTER-MD connected to WhatsApp');
 
       const up = `VEXTER-MD connected ✅\n\nPREFIX: ${prefix}`;
-      await danuwa.sendMessage(ownerNumber[0] + "@s.whatsapp.net", {
+      // මෙතන ඔයාගේ නම්බර් එක කෙලින්ම දාන්න
+      await danuwa.sendMessage("94783462955@s.whatsapp.net", {
         image: { url: `https://i.ibb.co/ZRXhhYxH/db1c9ed7-6513-49da-8105-f21c73583135.png` },
         caption: up
       });
@@ -238,7 +239,8 @@ if (mek.key?.remoteJid === 'status@broadcast') {
     const botNumber = danuwa.user.id.split(':')[0];
     const pushname = mek.pushName || 'Sin Nombre';
     const isMe = botNumber.includes(senderNumber);
-    const isOwner = ownerNumber.includes(senderNumber) || isMe;
+  // Deploy කරන කෙනාට Settings වැඩ කරන්න මෙහෙම දාන්න
+    const isOwner = (config.OWNER_NUMBER && config.OWNER_NUMBER.includes(senderNumber)) || botNumber.includes(senderNumber);
     const botNumber2 = await jidNormalizedUser(danuwa.user.id);
 
     // --- WORK MODE CHECK START ---
