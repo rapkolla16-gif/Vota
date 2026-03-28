@@ -155,9 +155,13 @@ async function connectToWA() {
             else if (input === '2') { category = "group"; subTitle = "GROUP MENU"; }
             else if (input === '3') { category = "owner"; subTitle = "OWNER MENU"; }
             else if (input === '4') { category = "search"; subTitle = "SEARCH MENU"; }
-            else if (input === '6') { category = "edit"; subTitle = "EDIT MENU"; }
-            
+            else if (input === '5') { category = "edit"; subTitle = "EDIT MENU"; }
+            else if (input === '6') { category = "anime"; subTitle = "ANIME MENU"; }
+            else if (input === '7') { category = "logo"; subTitle = "LOGO MENU"; }
+            else if (input === '8') { category = "main"; subTitle = "MAIN MENU"; }
 
+
+            
             if (category) {
                 const filteredCmds = commands.filter(cmd => cmd.category && cmd.category.toLowerCase() === category.toLowerCase());
                 
