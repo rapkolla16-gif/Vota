@@ -80,6 +80,7 @@ global.pluginHooks.push(antiDeletePlugin);
 
 async function connectToWA() {
     console.log("Connecting VEXTER-MD 🧬...");
+    await new Promise(resolve => setTimeout(resolve, 2000));
     const { state, saveCreds } = await useMultiFileAuthState(path.join(__dirname, '/auth_info_baileys/'));
     const { version } = await fetchLatestBaileysVersion();
 
