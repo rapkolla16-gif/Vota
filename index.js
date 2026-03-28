@@ -244,7 +244,7 @@ if (!isOwner) {
         }
       }
     }
-  });
+  })
 
   danuwa.ev.on('messages.update', async (updates) => {
     if (global.pluginHooks) {
