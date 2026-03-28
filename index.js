@@ -121,19 +121,13 @@ async function connectToWA() {
         }
     });
 
+    danuwa.ev.on('creds.update', saveCreds);
+
     danuwa.ev.on('messages.upsert', async ({ messages }) => {
         const mek = messages[0];
         if (!mek || !mek.message) return;
 
         const from = mek.key.remoteJid;
-        // --- මෙන්න මේ ටික තමයි අලුතින්ම දාන්න ඕනෙ ---
-        if (config.presence && config.presence !== 'off') {
-            await danuwa.sendPresenceUpdate(config.presence, from);
-        }
-        // ------------------------------------------
-
-        
-        
         const type = getContentType(mek.message);
         const body = (type === 'conversation') ? mek.message.conversation : (type === 'extendedTextMessage') ? mek.message.extendedTextMessage.text : (mek.message[type]?.caption || '');
         const sender = mek.key.fromMe ? danuwa.user.id : (mek.key.participant || mek.key.remoteJid);
@@ -142,7 +136,12 @@ async function connectToWA() {
         const isCmd = body.startsWith(prefix);
         const reply = (text) => danuwa.sendMessage(from, { text }, { quoted: mek });
 
-        // --- 1. Dashboard Logic (All 40 Cases) ---
+        // --- 1. Presence Update Logic ---
+        if (config.presence && config.presence !== 'off') {
+            await danuwa.sendPresenceUpdate(config.presence, from).catch(e => console.log(e));
+        }
+
+        // --- 2. Dashboard Logic (ONLY if NOT a command) ---
         if (!isCmd && isOwner && body) {
             let update = {};
             let msgDesc = "";
@@ -150,97 +149,69 @@ async function connectToWA() {
             const Settings = require('./lib/settings');
 
             switch(input) {
-                // Work Mode
                 case "1.1": update.workMode = "public"; msgDesc = "Work Mode: PUBLIC"; break;
                 case "1.2": update.workMode = "private"; msgDesc = "Work Mode: PRIVATE"; break;
                 case "1.3": update.workMode = "groups"; msgDesc = "Work Mode: GROUPS"; break;
                 case "1.4": update.workMode = "inbox"; msgDesc = "Work Mode: INBOX"; break;
-                // Status Seen
                 case "2.1": update.statusSeen = "true"; msgDesc = "Status Seen: ON"; break;
                 case "2.2": update.statusSeen = "false"; msgDesc = "Status Seen: OFF"; break;
-                // Auto Reply
                 case "3.1": update.autoReply = "true"; msgDesc = "Auto Reply: ON"; break;
                 case "3.2": update.autoReply = "false"; msgDesc = "Auto Reply: OFF"; break;
-                // Auto Voice
                 case "4.1": update.autoVoice = "true"; msgDesc = "Auto Voice: ON"; break;
                 case "4.2": update.autoVoice = "false"; msgDesc = "Auto Voice: OFF"; break;
-                // Auto Sticker
                 case "5.1": update.autoSticker = "true"; msgDesc = "Auto Sticker: ON"; break;
                 case "5.2": update.autoSticker = "false"; msgDesc = "Auto Sticker: OFF"; break;
-                // Anti Bad
                 case "6.1": update.antiBad = "true"; msgDesc = "Anti Bad: ON"; break;
                 case "6.2": update.antiBad = "false"; msgDesc = "Anti Bad: OFF"; break;
-                // Anti Link
                 case "7.1": update.antiLink = "true"; msgDesc = "Anti Link: ON"; break;
                 case "7.2": update.antiLink = "false"; msgDesc = "Anti Link: OFF"; break;
-                // Anti Bot
                 case "8.1": update.antiBot = "true"; msgDesc = "Anti Bot: ON"; break;
                 case "8.2": update.antiBot = "false"; msgDesc = "Anti Bot: OFF"; break;
-                // Online Status
                 case "9.1": update.onlineStatus = "online"; msgDesc = "Online Status: ONLINE"; break;
                 case "9.2": update.onlineStatus = "offline"; msgDesc = "Online Status: OFFLINE"; break;
-                // Read Command
                 case "10.1": update.readCommand = "true"; msgDesc = "Read Command: ON"; break;
                 case "10.2": update.readCommand = "false"; msgDesc = "Read Command: OFF"; break;
-                // Presence
                 case "11.1": update.presence = "recording"; msgDesc = "Presence: RECORDING"; break;
                 case "11.2": update.presence = "typing"; msgDesc = "Presence: TYPING"; break;
                 case "11.3": update.presence = "off"; msgDesc = "Presence: OFF"; break;
-                // Auto React
                 case "12.1": update.autoReact = "true"; msgDesc = "Auto React: ON"; break;
                 case "12.2": update.autoReact = "false"; msgDesc = "Auto React: OFF"; break;
-                // AI Chat
                 case "14.1": update.aiChat = "true"; msgDesc = "AI Chat: ON"; break;
                 case "14.2": update.aiChat = "false"; msgDesc = "AI Chat: OFF"; break;
-                // Anti Call
                 case "15.1": update.antiCall = "true"; msgDesc = "Anti Call: ON"; break;
                 case "15.2": update.antiCall = "false"; msgDesc = "Anti Call: OFF"; break;
-                // Welcome
                 case "16.1": update.welcome = "true"; msgDesc = "Welcome: ON"; break;
                 case "16.2": update.welcome = "false"; msgDesc = "Welcome: OFF"; break;
-                // Anti Delete
                 case "17.1": update.antiDelete = "inbox"; msgDesc = "Anti Delete: INBOX ONLY"; break;
                 case "17.2": update.antiDelete = "group"; msgDesc = "Anti Delete: GROUP ONLY"; break;
                 case "17.3": update.antiDelete = "both"; msgDesc = "Anti Delete: BOTH"; break;
                 case "17.4": update.antiDelete = "false"; msgDesc = "Anti Delete: OFF"; break;
-                // TikTok
                 case "18.1": update.autoTiktok = "true"; msgDesc = "TikTok Sender: ON"; break;
                 case "18.2": update.autoTiktok = "false"; msgDesc = "TikTok Sender: OFF"; break;
-                // News
                 case "19.1": update.autoNews = "true"; msgDesc = "News Sender: ON"; break;
                 case "19.2": update.autoNews = "false"; msgDesc = "News Sender: OFF"; break;
-                // Status Like
                 case "20.1": update.statusLike = "true"; msgDesc = "Status Like: ON"; break;
                 case "20.2": update.statusLike = "false"; msgDesc = "Status Like: OFF"; break;
-                // Movie Download
                 case "22.1": update.movieDownload = "public"; msgDesc = "Movie Download: PUBLIC"; break;
                 case "22.2": update.movieDownload = "private"; msgDesc = "Movie Download: PRIVATE"; break;
             }
 
             if (Object.keys(update).length > 0) {
                 try {
-                    const result = await Settings.findOneAndUpdate(
-                        {}, 
-                        { $set: update }, 
-                        { upsert: true, returnDocument: 'after' }
-                    );
-
+                    const result = await Settings.findOneAndUpdate({}, { $set: update }, { upsert: true, returnDocument: 'after' });
                     if (result) {
                         Object.assign(config, update);
-                        console.log("✅ DB Synced Successfully:", update);
                         await reply(`✅ *VEXTER-MD UPDATED*\n\n${msgDesc}`);
-                        return; // 👈 මේ 'return' එක අනිවාර්යයෙන්ම තියෙන්න ඕනේ. එතකොට Settings Update වුණාම එතනින් නවතිනවා.
+                        return; // Settings update වුණාම මෙතනින් නවත්වනවා
                     }
                 } catch (err) {
                     console.error("❌ DB Update Error:", err);
                     return reply("❌ Database Update Error!");
                 }
             }
-        } // 👈 මෙතනින් Settings Logic එක ඉවරයි.
+        }
 
-        // --- ඊළඟට තමයි පල්ලෙහා තියෙන Status handling සහ Plugins ටික තියෙන්න ඕනේ ---
-
-        // --- 2. Auto Status Seen & React ---
+        // --- 3. Auto Status Logic ---
         if (from === 'status@broadcast') {
             if (config.statusSeen === "true") await danuwa.readMessages([mek.key]);
             if (config.statusReact === "true") {
@@ -251,7 +222,7 @@ async function connectToWA() {
             return;
         }
 
-        // --- 3. Plugin Hooks ---
+        // --- 4. Plugin Hooks & Privacy Mode ---
         if (global.pluginHooks) {
             for (const plugin of global.pluginHooks) {
                 if (plugin.onMessage) {
@@ -268,7 +239,7 @@ async function connectToWA() {
             if (mode === "private" || (mode === "groups" && !isGroup) || (mode === "inbox" && isGroup)) return;
         }
 
-        // --- 4. Command Execution ---
+        // --- 5. Command Execution (MENU WORK HERE) ---
         const commandName = isCmd ? body.slice(prefix.length).trim().split(" ")[0].toLowerCase() : '';
         if (isCmd) {
             const cmd = commands.find((c) => c.pattern === commandName || (c.alias && c.alias.includes(commandName)));
