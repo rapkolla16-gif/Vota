@@ -1,26 +1,53 @@
-const { cmd, commands } = require('../command');
-const config = require('../config');
-
-// User ගත්ත Menu එක track කරන්න
-global.menuSession = global.menuSession || {};
+const config = require('../config')
+const { cmd, commands } = require('../command')
+const { runtime } = require('../lib/functions')
 
 cmd({
     pattern: "menu",
+    alias: ["panel","list"],
+    desc: "Show the main menu of the bot",
+    category: "main",
     react: "🧬",
     filename: __filename
 },
-async (danuwa, mek, m, { from, reply, sender }) => {
-    try {
-        let menuText = `*🧬 VEXTER-MD MAIN MENU 🧬*\n\n`;
-        menuText += `*1.* Download Commands 📥\n`;
-        menuText += `*2.* Group Commands 👥\n`;
-        menuText += `*3.* Owner Commands 👑\n\n`;
-        menuText += `> Reply with a number.\n_MAIN MENU_`;
+async(conn, mek, m,{from, quoted, reply}) => {
+    try{
+        let menuMsg = `╭───「 *VEXTER-MD MAIN MENU* 」───⊷
+│
+│ 👤 *User:* ${m.pushName}
+│ ⏳ *Uptime:* ${runtime(process.uptime())}
+│ 🧬 *Mode:* ${config.workMode}
+│ 🛠️ *Prefix:* ${config.PREFIX}
+│
+├──────────────────────────⊷
+│
+│ *Reply a number to explore:*
+│
+│ 🧬 *1* - Download Commands 📥
+│ 🧬 *2* - Group Commands 👥
+│ 🧬 *3* - Owner Commands 👑
+│ 🧬 *4* - Search Commands 🔍
+│
+╰──────────────────────────⊷
+> *Created By Dexter* 🧬`
 
-        const sent = await danuwa.sendMessage(from, { image: { url: config.ALIVE_IMG }, caption: menuText }, { quoted: mek });
-        
-        // Session එක save කරනවා
-        global.menuSession[sender] = { msgId: sent.key.id, time: Date.now() };
+        await conn.sendMessage(from, { 
+            image: { url: config.ALIVE_IMG }, 
+            caption: menuMsg,
+            contextInfo: {
+                externalAdReply: {
+                    title: "🧬 VEXTER-MD MULTI DEVICE",
+                    body: "Select an option by replying with the number",
+                    mediaType: 1,
+                    thumbnailUrl: config.ALIVE_IMG,
+                    renderLargerThumbnail: true,
+                    sourceUrl: "https://wa.me/94783462955"
+                }
+            }
+        }, { quoted: mek });
 
-    } catch (e) { reply(`❌ Error: ${e}`); }
-});
+    } catch(e) {
+        console.log(e)
+        reply(`${e}`)
+    }
+})
