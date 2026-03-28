@@ -126,7 +126,6 @@ async function connectToWA() {
         const mek = messages[0];
         if (!mek || !mek.message) return;
         
-        // --- basic variables ---
         const from = mek.key.remoteJid;
         const type = getContentType(mek.message);
         const body = (type === 'conversation') ? mek.message.conversation : (type === 'extendedTextMessage') ? mek.message.extendedTextMessage.text : (mek.message[type]?.caption || '');
@@ -136,7 +135,6 @@ async function connectToWA() {
         const isCmd = body.startsWith(prefix);
         const reply = (text) => danuwa.sendMessage(from, { text }, { quoted: mek });
 
-        // --- 1. Settings Panel Reply Handler ---
         if (!isCmd && isOwner && body) {
             let update = {};
             let msgDesc = "";
@@ -150,104 +148,65 @@ async function connectToWA() {
                 case "1.4": update.workMode = "inbox"; msgDesc = "Work Mode: INBOX"; break;
                 case "2.1": update.statusSeen = "true"; msgDesc = "Auto Status Seen: ON"; break;
                 case "2.2": update.statusSeen = "false"; msgDesc = "Auto Status Seen: OFF"; break;
-                case "3.1": update.autoReply = "true"; msg = "Auto Reply: ON"; break;
-        case "3.2": update.autoReply = "false"; msg = "Auto Reply: OFF"; break;
-
-        // [4] AUTO VOICE
-        case "4.1": update.autoVoice = "true"; msg = "Auto Voice: ON"; break;
-        case "4.2": update.autoVoice = "false"; msg = "Auto Voice: OFF"; break;
-
-        // [5] AUTO STICKER
-        case "5.1": update.autoSticker = "true"; msg = "Auto Sticker: ON"; break;
-        case "5.2": update.autoSticker = "false"; msg = "Auto Sticker: OFF"; break;
-
-        // [6] ANTI BAD
-        case "6.1": update.antiBad = "true"; msg = "Anti Bad: ON"; break;
-        case "6.2": update.antiBad = "false"; msg = "Anti Bad: OFF"; break;
-
-        // [7] ANTI LINK
-        case "7.1": update.antiLink = "true"; msg = "Anti Link: ON"; break;
-        case "7.2": update.antiLink = "false"; msg = "Anti Link: OFF"; break;
-// [8] ANTI BOT
-        case "8.1": update.antiBot = "true"; msg = "Anti Bot: ON"; break;
-        case "8.2": update.antiBot = "false"; msg = "Anti Bot: OFF"; break;
-
-        // [9] ALWAYS ONLINE
-        case "9.1": update.onlineStatus = "online"; msg = "Online Status: ONLINE"; break;
-        case "9.2": update.onlineStatus = "offline"; msg = "Online Status: OFFLINE"; break;
-
-        // [10] READ COMMAND
-        case "10.1": update.readCommand = "true"; msg = "Read Command: ON"; break;
-        case "10.2": update.readCommand = "false"; msg = "Read Command: OFF"; break;
-
-        // [11] TYPING/RECORDING
-        case "11.1": update.presence = "recording"; msg = "Presence: RECORDING"; break;
-        case "11.2": update.presence = "typing"; msg = "Presence: TYPING"; break;
-        case "11.3": update.presence = "off"; msg = "Presence: OFF"; break;
-
-                    case "12.1": update.autoReact = "true"; msgDesc = "Auto React: ON"; break;
+                case "3.1": update.autoReply = "true"; msgDesc = "Auto Reply: ON"; break;
+                case "3.2": update.autoReply = "false"; msgDesc = "Auto Reply: OFF"; break;
+                case "4.1": update.autoVoice = "true"; msgDesc = "Auto Voice: ON"; break;
+                case "4.2": update.autoVoice = "false"; msgDesc = "Auto Voice: OFF"; break;
+                case "5.1": update.autoSticker = "true"; msgDesc = "Auto Sticker: ON"; break;
+                case "5.2": update.autoSticker = "false"; msgDesc = "Auto Sticker: OFF"; break;
+                case "6.1": update.antiBad = "true"; msgDesc = "Anti Bad: ON"; break;
+                case "6.2": update.antiBad = "false"; msgDesc = "Anti Bad: OFF"; break;
+                case "7.1": update.antiLink = "true"; msgDesc = "Anti Link: ON"; break;
+                case "7.2": update.antiLink = "false"; msgDesc = "Anti Link: OFF"; break;
+                case "8.1": update.antiBot = "true"; msgDesc = "Anti Bot: ON"; break;
+                case "8.2": update.antiBot = "false"; msgDesc = "Anti Bot: OFF"; break;
+                case "9.1": update.onlineStatus = "online"; msgDesc = "Online Status: ONLINE"; break;
+                case "9.2": update.onlineStatus = "offline"; msgDesc = "Online Status: OFFLINE"; break;
+                case "10.1": update.readCommand = "true"; msgDesc = "Read Command: ON"; break;
+                case "10.2": update.readCommand = "false"; msgDesc = "Read Command: OFF"; break;
+                case "11.1": update.presence = "recording"; msgDesc = "Presence: RECORDING"; break;
+                case "11.2": update.presence = "typing"; msgDesc = "Presence: TYPING"; break;
+                case "11.3": update.presence = "off"; msgDesc = "Presence: OFF"; break;
+                case "12.1": update.autoReact = "true"; msgDesc = "Auto React: ON"; break;
                 case "12.2": update.autoReact = "false"; msgDesc = "Auto React: OFF"; break;
-
-                    // [14] AI CHAT
-        case "14.1": update.aiChat = "true"; msg = "AI Chat: ON"; break;
-        case "14.2": update.aiChat = "false"; msg = "AI Chat: OFF"; break;
-
-        // [15] ANTI CALL
-        case "15.1": update.antiCall = "true"; msg = "Anti Call: ON"; break;
-        case "15.2": update.antiCall = "false"; msg = "Anti Call: OFF"; break;
-
-        // [16] WELCOME
-        case "16.1": update.welcome = "true"; msg = "Welcome: ON"; break;
-        case "16.2": update.welcome = "false"; msg = "Welcome: OFF"; break;
-
-        // [17] ANTI DELETE
-        case "17.1": update.antiDelete = "inbox"; msg = "Anti Delete: INBOX ONLY"; break;
-        case "17.2": update.antiDelete = "group"; msg = "Anti Delete: GROUP ONLY"; break;
-        case "17.3": update.antiDelete = "both"; msg = "Anti Delete: BOTH"; break;
-        case "17.4": update.antiDelete = "false"; msg = "Anti Delete: OFF"; break;
-
-        // [18] TIKTOK
-        case "18.1": update.autoTiktok = "true"; msg = "TikTok Sender: ON"; break;
-        case "18.2": update.autoTiktok = "false"; msg = "TikTok Sender: OFF"; break;
-
-                    case "19.1": update.autoNews = "true"; msg = "News Sender: ON"; break;
-        case "19.2": update.autoNews = "false"; msg = "News Sender: OFF"; break;
-
-        // [20] STATUS LIKE
-        case "20.1": update.statusLike = "true"; msg = "Status Like: ON"; break;
-        case "20.2": update.statusLike = "false"; msg = "Status Like: OFF"; break;
-
-        // [21] REPLY TYPE
-        case "21.1": update.replyType = "default"; msg = "Reply Type: DEFAULT"; break;
-        case "21.2": update.replyType = "custom"; msg = "Reply Type: CUSTOM"; break;
-
-        // [22] MOVIE DOWNLOAD
-        case "22.1": update.movieDownload = "public"; msg = "Movie Download: PUBLIC"; break;
-        case "22.2": update.movieDownload = "private"; msg = "Movie Download: PRIVATE"; break;
-                    
-                
-                // Add more cases here from your settings list
+                case "14.1": update.aiChat = "true"; msgDesc = "AI Chat: ON"; break;
+                case "14.2": update.aiChat = "false"; msgDesc = "AI Chat: OFF"; break;
+                case "15.1": update.antiCall = "true"; msgDesc = "Anti Call: ON"; break;
+                case "15.2": update.antiCall = "false"; msgDesc = "Anti Call: OFF"; break;
+                case "16.1": update.welcome = "true"; msgDesc = "Welcome: ON"; break;
+                case "16.2": update.welcome = "false"; msgDesc = "Welcome: OFF"; break;
+                case "17.1": update.antiDelete = "inbox"; msgDesc = "Anti Delete: INBOX ONLY"; break;
+                case "17.2": update.antiDelete = "group"; msgDesc = "Anti Delete: GROUP ONLY"; break;
+                case "17.3": update.antiDelete = "both"; msgDesc = "Anti Delete: BOTH"; break;
+                case "17.4": update.antiDelete = "false"; msgDesc = "Anti Delete: OFF"; break;
+                case "18.1": update.autoTiktok = "true"; msgDesc = "TikTok Sender: ON"; break;
+                case "18.2": update.autoTiktok = "false"; msgDesc = "TikTok Sender: OFF"; break;
+                case "19.1": update.autoNews = "true"; msgDesc = "News Sender: ON"; break;
+                case "19.2": update.autoNews = "false"; msgDesc = "News Sender: OFF"; break;
+                case "20.1": update.statusLike = "true"; msgDesc = "Status Like: ON"; break;
+                case "20.2": update.statusLike = "false"; msgDesc = "Status Like: OFF"; break;
+                case "21.1": update.replyType = "default"; msgDesc = "Reply Type: DEFAULT"; break;
+                case "21.2": update.replyType = "custom"; msgDesc = "Reply Type: CUSTOM"; break;
+                case "22.1": update.movieDownload = "public"; msgDesc = "Movie Download: PUBLIC"; break;
+                case "22.2": update.movieDownload = "private"; msgDesc = "Movie Download: PRIVATE"; break;
             }
 
             if (Object.keys(update).length > 0) {
                 try {
-                    // මෙතන id: "bot_settings" වෙනුවට මෙහෙම දාලා බලන්න
-                    const result = await Settings.findOneAndUpdate({}, update, { upsert: true, new: true });
-                    
+                    const result = await Settings.findOneAndUpdate({ id: "bot_settings" }, update, { upsert: true, new: true });
                     if (result) {
-                        Object.assign(config, update); 
-                        console.log("✅ Database Updated:", update);
+                        Object.assign(config, update);
                         return reply(`✅ *VEXTER-MD UPDATED*\n\n${msgDesc}`);
                     }
                 } catch (err) {
                     console.error("❌ DB Update Error:", err);
-                    return reply("❌ Database එක Update කිරීමේදී දෝෂයක් ඇති විය.");
+                    return reply("❌ Database Update Error!");
                 }
             }
+        }
 
-        // --- 2. Status handling ---
         if (from === 'status@broadcast') {
-            if (config.AUTO_READ_STATUS === "true") await danuwa.readMessages([mek.key]);
+            if (config.AUTO_STATUS_SEEN === "true") await danuwa.readMessages([mek.key]);
             if (config.AUTO_STATUS_REACT === "true") {
                 const emojis = ['❤️', '🔥', '✨', '💯', '😎'];
                 const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
@@ -256,7 +215,6 @@ async function connectToWA() {
             return;
         }
 
-        // --- 3. Plugin Hooks & Commands ---
         if (global.pluginHooks) {
             for (const plugin of global.pluginHooks) {
                 if (plugin.onMessage) {
