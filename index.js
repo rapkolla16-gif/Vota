@@ -259,7 +259,7 @@ if (!isOwner) {
       }
     }
   });
-}
+})
 
 const mongoose = require('mongoose');
 
