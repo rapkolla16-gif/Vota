@@ -125,6 +125,7 @@ async function connectToWA() {
         const mek = messages[0];
         if (!mek || !mek.message) return;
 
+        const from = mek.key.remoteJid;
         // --- මෙන්න මේ ටික තමයි අලුතින්ම දාන්න ඕනෙ ---
         if (config.presence && config.presence !== 'off') {
             await danuwa.sendPresenceUpdate(config.presence, from);
@@ -132,7 +133,7 @@ async function connectToWA() {
         // ------------------------------------------
 
         
-        const from = mek.key.remoteJid;
+        
         const type = getContentType(mek.message);
         const body = (type === 'conversation') ? mek.message.conversation : (type === 'extendedTextMessage') ? mek.message.extendedTextMessage.text : (mek.message[type]?.caption || '');
         const sender = mek.key.fromMe ? danuwa.user.id : (mek.key.participant || mek.key.remoteJid);
